@@ -89,24 +89,7 @@ Oblivian integrates with Claude Desktop using the Model Context Protocol (MCP) f
 {
   "mcpServers": {
     "oblivian": {
-      "command": "/path/to/oblivian/mcp-wrapper.sh",
-      "env": {
-        "OBLIVIAN_TOKEN": "YOUR_API_TOKEN"
-      }
-    }
-  }
-}
-```
-
-Replace `/path/to/oblivian` with your project path and `YOUR_API_TOKEN` with the token from Settings.
-
-**Note:** The wrapper script ensures Node.js 20+ compatibility. If you have Node.js 20+ installed, you can alternatively use:
-
-```json
-{
-  "mcpServers": {
-    "oblivian": {
-      "command": "npx",
+      "command": "/opt/homebrew/bin/npx",
       "args": [
         "-y",
         "mcp-remote",
@@ -121,6 +104,10 @@ Replace `/path/to/oblivian` with your project path and `YOUR_API_TOKEN` with the
   }
 }
 ```
+
+Replace `YOUR_API_TOKEN` with the token from Settings.
+
+**Note:** Using the full path `/opt/homebrew/bin/npx` ensures Claude Desktop uses the correct Node.js version instead of an older nvm version.
 
 3. **Restart Claude Desktop** and start generating cards with natural language:
    - "Create 20 flashcards about Python programming"
