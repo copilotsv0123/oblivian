@@ -148,7 +148,7 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             const userDecks = await db
               .select()
               .from(decks)
-              .where(eq(decks.userId, userId))
+              .where(eq(decks.ownerUserId, userId))
               .orderBy(desc(decks.createdAt))
             
             return {
@@ -166,7 +166,7 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             const newDeck = await db
               .insert(decks)
               .values({
-                userId,
+                ownerUserId: userId,
                 title: args.title,
                 description: args.description || null,
                 level: args.level || 'simple',

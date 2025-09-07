@@ -98,7 +98,8 @@ Oblivian integrates with Claude Desktop using the Model Context Protocol (MCP) f
         "Authorization: Bearer ${OBLIVIAN_TOKEN}"
       ],
       "env": {
-        "OBLIVIAN_TOKEN": "YOUR_API_TOKEN"
+        "OBLIVIAN_TOKEN": "YOUR_API_TOKEN",
+        "PATH": "/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
       }
     }
   }
@@ -107,7 +108,7 @@ Oblivian integrates with Claude Desktop using the Model Context Protocol (MCP) f
 
 Replace `YOUR_API_TOKEN` with the token from Settings.
 
-**Note:** Using the full path `/opt/homebrew/bin/npx` ensures Claude Desktop uses the correct Node.js version instead of an older nvm version.
+**Note:** The custom PATH ensures Homebrew's Node.js v23 is used instead of nvm's older versions.
 
 3. **Restart Claude Desktop** and start generating cards with natural language:
    - "Create 20 flashcards about Python programming"
