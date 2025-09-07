@@ -77,7 +77,7 @@ Visit `http://localhost:3000` to see your app running! 🎉
 
 ## 🤖 Claude Desktop Integration
 
-Oblivian includes a powerful MCP (Model Context Protocol) server that integrates with Claude Desktop for AI-powered card generation.
+Oblivian integrates seamlessly with Claude Desktop using the Model Context Protocol (MCP) over SSE for AI-powered card generation.
 
 ### Setup MCP
 
@@ -89,11 +89,11 @@ Oblivian includes a powerful MCP (Model Context Protocol) server that integrates
 {
   "mcpServers": {
     "oblivian": {
-      "command": "/path/to/oblivian/mcp-server/run-mcp.sh",
-      "args": [
-        "--url", "http://localhost:3000",
-        "--access-token", "YOUR_API_TOKEN"
-      ]
+      "transport": "sse",
+      "url": "http://localhost:3000/api/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_TOKEN"
+      }
     }
   }
 }
@@ -116,7 +116,7 @@ Oblivian includes a powerful MCP (Model Context Protocol) server that integrates
 ```
 oblivian/
 ├── app/                    # Next.js 15 App Router
-│   ├── api/               # API routes
+│   ├── api/               # API routes (including MCP SSE endpoint)
 │   ├── (auth)/            # Authentication pages
 │   └── (app)/             # Main application
 ├── components/            # React components
@@ -125,7 +125,6 @@ oblivian/
 │   ├── db/               # Database layer (Drizzle ORM)
 │   ├── fsrs/             # Spaced repetition algorithm
 │   └── embeddings/       # Vector similarity features
-├── mcp-server/           # Claude Desktop integration
 └── data/                 # SQLite database
 ```
 
@@ -135,7 +134,7 @@ oblivian/
 - **Backend**: Next.js API Routes, Drizzle ORM
 - **Database**: SQLite with vector embeddings
 - **Authentication**: JWT + API tokens
-- **AI Integration**: MCP protocol for Claude Desktop
+- **AI Integration**: MCP protocol over SSE for Claude Desktop
 - **Algorithm**: FSRS (Free Spaced Repetition Scheduler)
 
 ## 📚 Documentation
