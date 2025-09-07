@@ -77,7 +77,7 @@ Visit `http://localhost:3000` to see your app running! 🎉
 
 ## 🤖 Claude Desktop Integration
 
-Oblivian integrates seamlessly with Claude Desktop using the Model Context Protocol (MCP) over SSE for AI-powered card generation.
+Oblivian integrates with Claude Desktop using the Model Context Protocol (MCP) for AI-powered card generation.
 
 ### Setup MCP
 
@@ -89,15 +89,22 @@ Oblivian integrates seamlessly with Claude Desktop using the Model Context Proto
 {
   "mcpServers": {
     "oblivian": {
-      "transport": "sse",
-      "url": "http://localhost:3000/api/mcp",
-      "headers": {
-        "Authorization": "Bearer YOUR_API_TOKEN"
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "http://localhost:3000/api/mcp",
+        "--header",
+        "Authorization: Bearer ${OBLIVIAN_TOKEN}"
+      ],
+      "env": {
+        "OBLIVIAN_TOKEN": "YOUR_API_TOKEN"
       }
     }
   }
 }
 ```
+
+Replace `YOUR_API_TOKEN` with the token from Settings.
 
 3. **Restart Claude Desktop** and start generating cards with natural language:
    - "Create 20 flashcards about Python programming"
@@ -134,7 +141,7 @@ oblivian/
 - **Backend**: Next.js API Routes, Drizzle ORM
 - **Database**: SQLite with vector embeddings
 - **Authentication**: JWT + API tokens
-- **AI Integration**: MCP protocol over SSE for Claude Desktop
+- **AI Integration**: MCP protocol for Claude Desktop (SSE with stdio bridge)
 - **Algorithm**: FSRS (Free Spaced Repetition Scheduler)
 
 ## 📚 Documentation
