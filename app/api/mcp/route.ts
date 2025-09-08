@@ -1,8 +1,6 @@
 import { NextRequest } from 'next/server'
 import { authenticateRequest } from '@/lib/auth/middleware'
-import { db } from '@/lib/db'
-import { decks, cards, apiTokens } from '@/lib/db/schema'
-import { eq, desc, and, sql } from 'drizzle-orm'
+import { deckRepository, cardRepository } from '@/lib/repositories'
 
 // MCP Protocol Implementation with SSE Transport
 const PROTOCOL_VERSION = '2024-11-05'
@@ -145,11 +143,7 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
         
         switch (name) {
           case 'list_decks':
-            const userDecks = await db
-              .select()
-              .from(decks)
-              .where(eq(decks.ownerUserId, userId))
-              .orderBy(desc(decks.createdAt))
+            const userDecks = await deckRepository.findByUserId(userId)
             
             return {
               jsonrpc: '2.0',
@@ -163,15 +157,12 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             }
 
           case 'create_deck':
-            const newDeck = await db
-              .insert(decks)
-              .values({
-                ownerUserId: userId,
-                title: args.title,
-                description: args.description || null,
-                level: args.level || 'simple',
-              })
-              .returning()
+            const deckResult = await deckRepository.create({
+              userId,
+              title: args.title,
+              description: args.description,
+              level: args.level,
+            })
             
             return {
               jsonrpc: '2.0',
@@ -179,25 +170,13 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
               result: {
                 content: [{
                   type: 'text',
-                  text: JSON.stringify({ deck: newDeck[0] }, null, 2),
+                  text: JSON.stringify({ deck: deckResult.data }, null, 2),
                 }],
               },
             }
 
           case 'create_cards_batch':
-            const createdCards = await db
-              .insert(cards)
-              .values(
-                args.cards.map((card: any) => ({
-                  deckId: args.deckId,
-                  type: card.type,
-                  front: card.front,
-                  back: card.back || null,
-                  choices: card.choices || null,
-                  explanation: card.explanation || null,
-                }))
-              )
-              .returning()
+            const batchCards = await cardRepository.createBatch(args.deckId, args.cards)
             
             return {
               jsonrpc: '2.0',
@@ -206,18 +185,15 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
                 content: [{
                   type: 'text',
                   text: JSON.stringify({ 
-                    created: createdCards.length,
-                    cards: createdCards,
+                    created: batchCards.length,
+                    cards: batchCards,
                   }, null, 2),
                 }],
               },
             }
 
           case 'list_cards':
-            const deckCards = await db
-              .select()
-              .from(cards)
-              .where(eq(cards.deckId, args.deckId))
+            const deckCards = await cardRepository.findByDeckId(args.deckId)
             
             return {
               jsonrpc: '2.0',
@@ -231,7 +207,7 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             }
 
           case 'delete_card':
-            await db.delete(cards).where(eq(cards.id, args.cardId))
+            const deleteResult = await cardRepository.delete(args.cardId)
             
             return {
               jsonrpc: '2.0',
@@ -239,7 +215,7 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
               result: {
                 content: [{
                   type: 'text',
-                  text: JSON.stringify({ deleted: true, cardId: args.cardId }, null, 2),
+                  text: JSON.stringify({ deleted: deleteResult.success, cardId: args.cardId }, null, 2),
                 }],
               },
             }

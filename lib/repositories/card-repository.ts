@@ -1,10 +1,12 @@
-import { db, cards, Card, NewCard } from '@/lib/db'
+import { db } from '@/lib/db'
+import { cards, type Card, type NewCard } from '@/lib/db/schema'
 import { eq, and, desc, inArray } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 import { CreateCardInput, UpdateCardInput, Choice } from '@/lib/types/cards'
 import { transformDbCardToApiCard, transformDbCardsToApiCards } from '@/lib/db/transformers'
+import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base-repository'
 
-export class CardRepository {
+export class CardRepository extends BaseRepository {
   async findByDeckId(deckId: string, limit = 100, offset = 0) {
     const dbCards = await db
       .select()
@@ -40,22 +42,29 @@ export class CardRepository {
     return transformDbCardsToApiCards(dbCards)
   }
 
-  async create(input: CreateCardInput) {
-    const cardId = randomUUID()
-    
-    this.validateCard(input)
-    
-    const [newCard] = await db.insert(cards).values({
-      id: cardId,
-      deckId: input.deckId,
-      type: input.type,
-      front: input.front,
-      back: input.back || null,
-      choices: input.choices ? JSON.stringify(input.choices) : null,
-      explanation: input.explanation || null,
-    }).returning()
-    
-    return transformDbCardToApiCard(newCard)
+  async create(input: CreateCardInput): Promise<CreateResult<any>> {
+    try {
+      this.validateRequiredFields(input, ['deckId', 'type', 'front'])
+      this.validateCard(input)
+      
+      const [newCard] = await db.insert(cards).values({
+        deckId: input.deckId,
+        type: input.type,
+        front: input.front,
+        back: input.back || null,
+        choices: input.choices ? JSON.stringify(input.choices) : null,
+        explanation: input.explanation || null,
+      }).returning()
+      
+      const transformedCard = transformDbCardToApiCard(newCard)
+      return {
+        success: true,
+        data: transformedCard,
+        id: newCard.id,
+      }
+    } catch (error) {
+      this.handleError(error, 'create')
+    }
   }
 
   async createBatch(deckId: string, cardInputs: Omit<CreateCardInput, 'deckId'>[]) {
@@ -110,9 +119,17 @@ export class CardRepository {
     return updated ? transformDbCardToApiCard(updated) : null
   }
 
-  async delete(cardId: string) {
-    await db.delete(cards).where(eq(cards.id, cardId))
-    return { success: true }
+  async delete(cardId: string): Promise<DeleteResult> {
+    try {
+      this.validateRequiredFields({ cardId }, ['cardId'])
+      await db.delete(cards).where(eq(cards.id, cardId))
+      return {
+        success: true,
+        deletedId: cardId,
+      }
+    } catch (error) {
+      this.handleError(error, 'delete')
+    }
   }
 
   private validateCard(input: CreateCardInput) {

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, cards, decks } from '@/lib/db'
 import { authenticateRequest } from '@/lib/auth/middleware'
-import { eq, and } from 'drizzle-orm'
 import { CreateCardInput } from '@/lib/types/cards'
-import { transformDbCardToApiCard } from '@/lib/db/transformers'
+import { deckRepository, cardRepository } from '@/lib/repositories'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,12 +20,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const deck = await db
-      .select()
-      .from(decks)
-      .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, user.id)))
-      .get()
-
+    // Check if user owns the deck
+    const deck = await deckRepository.findByIdAndUserId(deckId, user.id)
     if (!deck) {
       return NextResponse.json(
         { error: 'Deck not found or unauthorized' },
@@ -35,49 +29,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (type === 'basic' || type === 'cloze') {
-      if (!back) {
-        return NextResponse.json(
-          { error: 'Back content is required for basic and cloze cards' },
-          { status: 400 }
-        )
-      }
-    }
+    const result = await cardRepository.create(input)
 
-    if (type === 'multiple_choice') {
-      if (!choices || choices.length < 2) {
-        return NextResponse.json(
-          { error: 'At least 2 choices are required for multiple choice cards' },
-          { status: 400 }
-        )
-      }
-      const correctChoices = choices.filter(c => c.isCorrect)
-      if (correctChoices.length !== 1) {
-        return NextResponse.json(
-          { error: 'Exactly one choice must be marked as correct' },
-          { status: 400 }
-        )
-      }
-    }
-
-    if (type === 'explain' && !explanation) {
-      return NextResponse.json(
-        { error: 'Explanation is required for explain cards' },
-        { status: 400 }
-      )
-    }
-
-    const [newCard] = await db.insert(cards).values({
-      deckId,
-      type,
-      front,
-      back: back || null,
-      choices: choices ? JSON.stringify(choices) : null,
-      explanation: explanation || null,
-    }).returning()
-
-    const transformedCard = transformDbCardToApiCard(newCard)
-    return NextResponse.json({ card: transformedCard })
+    return NextResponse.json({ card: result.data })
   } catch (error) {
     console.error('Error creating card:', error)
     return NextResponse.json(

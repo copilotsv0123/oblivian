@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, decks } from '@/lib/db'
 import { authenticateRequest } from '@/lib/auth/middleware'
-import { eq, and } from 'drizzle-orm'
+import { deckRepository } from '@/lib/repositories'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,11 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const userDecks = await db
-      .select()
-      .from(decks)
-      .where(eq(decks.ownerUserId, user.id))
-      .all()
+    const userDecks = await deckRepository.findByUserId(user.id, true)
 
     return NextResponse.json({ decks: userDecks })
   } catch (error) {
@@ -42,16 +37,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const [newDeck] = await db.insert(decks).values({
-      ownerUserId: user.id,
+    const result = await deckRepository.create({
+      userId: user.id,
       title,
-      description: description || null,
-      level: level || 'simple',
-      language: language || 'en',
-      isPublic: isPublic || false,
-    }).returning()
+      description,
+      level,
+      language,
+      isPublic,
+    })
 
-    return NextResponse.json({ deck: newDeck })
+    return NextResponse.json({ deck: result.data })
   } catch (error) {
     console.error('Error creating deck:', error)
     return NextResponse.json(

@@ -115,9 +115,13 @@ export const deckRankings = sqliteTable('deck_rankings', {
 
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
+export type ApiToken = typeof apiTokens.$inferSelect
+export type NewApiToken = typeof apiTokens.$inferInsert
 export type Deck = typeof decks.$inferSelect
 export type NewDeck = typeof decks.$inferInsert
 export type Card = typeof cards.$inferSelect
 export type NewCard = typeof cards.$inferInsert
 export type Review = typeof reviews.$inferSelect
 export type NewReview = typeof reviews.$inferInsert
+export type StudySession = typeof studySessions.$inferSelect
+export type NewStudySession = typeof studySessions.$inferInsert

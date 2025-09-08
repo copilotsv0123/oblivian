@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, users } from '@/lib/db'
 import { verifyPassword } from '@/lib/auth/password'
 import { createToken, setAuthCookie } from '@/lib/auth/jwt'
-import { eq } from 'drizzle-orm'
 import { withApiHandler } from '@/lib/middleware/api-handler'
 import { ValidationError, UnauthorizedError } from '@/lib/errors/api-error'
+import { userRepository } from '@/lib/repositories'
 
 export const POST = withApiHandler(async (request: NextRequest) => {
   const { email, password } = await request.json()
@@ -13,7 +12,7 @@ export const POST = withApiHandler(async (request: NextRequest) => {
     throw new ValidationError('Email and password are required')
   }
 
-  const user = await db.select().from(users).where(eq(users.email, email)).get()
+  const user = await userRepository.findByEmail(email)
 
   // Always verify password to prevent timing attacks
   const dummyHash = '$2a$10$abcdefghijklmnopqrstuvwxyz123456789012345678901234567890'

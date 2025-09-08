@@ -1,8 +1,9 @@
-import { db, decks, cards, Deck, NewDeck } from '@/lib/db'
+import { db } from '@/lib/db'
+import { decks, cards, type Deck, type NewDeck } from '@/lib/db/schema'
 import { eq, and, desc, sql } from 'drizzle-orm'
-import { randomUUID } from 'crypto'
+import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base-repository'
 
-export class DeckRepository {
+export class DeckRepository extends BaseRepository {
   async findByUserId(userId: string, includeCardCount = false) {
     if (includeCardCount) {
       const query = db
@@ -60,20 +61,27 @@ export class DeckRepository {
     level?: 'simple' | 'mid' | 'expert'
     language?: string
     isPublic?: boolean
-  }) {
-    const deckId = randomUUID()
-    
-    const [newDeck] = await db.insert(decks).values({
-      id: deckId,
-      ownerUserId: data.userId,
-      title: data.title,
-      description: data.description || null,
-      level: data.level || 'simple',
-      language: data.language || 'en',
-      isPublic: data.isPublic || false,
-    }).returning()
-    
-    return newDeck
+  }): Promise<CreateResult<Deck>> {
+    try {
+      this.validateRequiredFields(data, ['userId', 'title'])
+      
+      const [newDeck] = await db.insert(decks).values({
+        ownerUserId: data.userId,
+        title: data.title,
+        description: data.description || null,
+        level: data.level || 'simple',
+        language: data.language || 'en',
+        isPublic: data.isPublic || false,
+      }).returning()
+      
+      return {
+        success: true,
+        data: newDeck,
+        id: newDeck.id,
+      }
+    } catch (error) {
+      this.handleError(error, 'create')
+    }
   }
 
   async update(deckId: string, data: Partial<{
@@ -104,10 +112,18 @@ export class DeckRepository {
     return updated
   }
 
-  async delete(deckId: string) {
-    // Cards will be deleted automatically due to CASCADE
-    await db.delete(decks).where(eq(decks.id, deckId))
-    return { success: true }
+  async delete(deckId: string): Promise<DeleteResult> {
+    try {
+      this.validateRequiredFields({ deckId }, ['deckId'])
+      // Cards will be deleted automatically due to CASCADE
+      await db.delete(decks).where(eq(decks.id, deckId))
+      return {
+        success: true,
+        deletedId: deckId,
+      }
+    } catch (error) {
+      this.handleError(error, 'delete')
+    }
   }
 
   async getStats(userId: string, deckId?: string) {
