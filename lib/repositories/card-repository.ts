@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { cards, reviews, type Card, type NewCard } from '@/lib/db/schema'
+import { cards, reviews, decks, type Card, type NewCard } from '@/lib/db/schema'
 import { eq, and, desc, inArray, lte, isNull } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 import { CreateCardInput, UpdateCardInput, Choice } from '@/lib/types/cards'
@@ -95,6 +95,83 @@ export class CardRepository extends BaseRepository {
     return transformDbCardsToApiCards(createdCards)
   }
 
+  async createBatchWithOwnershipCheck(deckId: string, userId: string, cardInputs: Omit<CreateCardInput, 'deckId'>[]) {
+    try {
+      this.validateRequiredFields({ deckId, userId }, ['deckId', 'userId'])
+      
+      if (!cardInputs || !Array.isArray(cardInputs)) {
+        throw new Error('bad request: cards array is required')
+      }
+
+      if (cardInputs.length === 0) {
+        throw new Error('bad request: At least one card is required')
+      }
+
+      if (cardInputs.length > 100) {
+        throw new Error('bad request: Maximum 100 cards can be imported at once')
+      }
+
+      // Check deck ownership
+      const deck = await db
+        .select()
+        .from(decks)
+        .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
+        .get()
+
+      if (!deck) {
+        throw new Error('not found: Deck not found')
+      }
+
+      // Validate all cards first
+      const validationErrors: Record<number, string> = {}
+      
+      cardInputs.forEach((card, index) => {
+        try {
+          const fullInput = { ...card, deckId }
+          this.validateCard(fullInput)
+        } catch (error) {
+          validationErrors[index] = error instanceof Error ? error.message : 'Validation error'
+        }
+      })
+
+      if (Object.keys(validationErrors).length > 0) {
+        throw new Error(`Validation errors: ${JSON.stringify(validationErrors)}`)
+      }
+
+      const createdCards: Card[] = []
+      
+      // Use a transaction for batch insert
+      await db.transaction(async (tx) => {
+        for (const input of cardInputs) {
+          const cardId = randomUUID()
+          const fullInput = { ...input, deckId }
+          
+          const [newCard] = await tx.insert(cards).values({
+            id: cardId,
+            deckId,
+            type: fullInput.type,
+            front: fullInput.front,
+            back: fullInput.back || null,
+            choices: fullInput.choices ? JSON.stringify(fullInput.choices) : null,
+            explanation: fullInput.explanation || null,
+          }).returning()
+          
+          createdCards.push(newCard)
+        }
+      })
+      
+      const transformedCards = transformDbCardsToApiCards(createdCards)
+      
+      return {
+        success: true,
+        count: transformedCards.length,
+        cards: transformedCards,
+      }
+    } catch (error) {
+      this.handleError(error, 'createBatchWithOwnershipCheck')
+    }
+  }
+
   async update(cardId: string, input: UpdateCardInput) {
     const updateData: any = {}
     
@@ -180,6 +257,102 @@ export class CardRepository extends BaseRepository {
       }
     } catch (error) {
       this.handleError(error, 'findDueAndNewCards')
+    }
+  }
+
+  async findByIdWithDeckOwnership(cardId: string, userId: string) {
+    try {
+      this.validateRequiredFields({ cardId, userId }, ['cardId', 'userId'])
+      
+      const result = await db
+        .select({
+          card: cards,
+          deck: decks,
+        })
+        .from(cards)
+        .innerJoin(decks, eq(cards.deckId, decks.id))
+        .where(and(eq(cards.id, cardId), eq(decks.ownerUserId, userId)))
+        .get()
+
+      if (!result) {
+        return null
+      }
+
+      return {
+        card: transformDbCardToApiCard(result.card),
+        deck: result.deck
+      }
+    } catch (error) {
+      this.handleError(error, 'findByIdWithDeckOwnership')
+    }
+  }
+
+  async updateWithOwnershipCheck(cardId: string, userId: string, updateData: { front?: string, back?: string, choices?: any, explanation?: string }) {
+    try {
+      this.validateRequiredFields({ cardId, userId }, ['cardId', 'userId'])
+      
+      // First check ownership
+      const existingCard = await db
+        .select({
+          card: cards,
+          deck: decks,
+        })
+        .from(cards)
+        .innerJoin(decks, eq(cards.deckId, decks.id))
+        .where(and(eq(cards.id, cardId), eq(decks.ownerUserId, userId)))
+        .get()
+
+      if (!existingCard) {
+        throw new Error('not found: Card not found')
+      }
+
+      // Update the card
+      const [updatedCard] = await db
+        .update(cards)
+        .set({
+          front: updateData.front,
+          back: updateData.back,
+          choices: updateData.choices ? JSON.stringify(updateData.choices) : undefined,
+          explanation: updateData.explanation,
+          updatedAt: new Date(),
+        })
+        .where(eq(cards.id, cardId))
+        .returning()
+
+      return transformDbCardToApiCard(updatedCard)
+    } catch (error) {
+      this.handleError(error, 'updateWithOwnershipCheck')
+    }
+  }
+
+  async deleteWithOwnershipCheck(cardId: string, userId: string): Promise<DeleteResult> {
+    try {
+      this.validateRequiredFields({ cardId, userId }, ['cardId', 'userId'])
+      
+      // First check ownership
+      const existingCard = await db
+        .select({
+          card: cards,
+          deck: decks,
+        })
+        .from(cards)
+        .innerJoin(decks, eq(cards.deckId, decks.id))
+        .where(and(eq(cards.id, cardId), eq(decks.ownerUserId, userId)))
+        .get()
+
+      if (!existingCard) {
+        throw new Error('not found: Card not found')
+      }
+
+      // Delete the card
+      await db.delete(cards).where(eq(cards.id, cardId))
+
+      return {
+        success: true,
+        deletedId: cardId,
+      }
+    } catch (error) {
+      this.handleError(error, 'deleteWithOwnershipCheck')
     }
   }
 

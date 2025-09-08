@@ -124,6 +124,55 @@ export class DeckScoreRepository extends BaseRepository {
     }
   }
 
+  async updateDeckScoreAfterReview(
+    userId: string, 
+    deckId: string, 
+    rating: 'again' | 'hard' | 'good' | 'easy', 
+    stability: number
+  ): Promise<void> {
+    try {
+      this.validateRequiredFields({ userId, deckId, rating }, ['userId', 'deckId', 'rating'])
+      
+      const accuracyScore = rating === 'again' ? 0 : rating === 'hard' ? 0.6 : 1
+      
+      const existingScore = await db
+        .select()
+        .from(deckScores)
+        .where(
+          and(
+            eq(deckScores.userId, userId),
+            eq(deckScores.deckId, deckId),
+            eq(deckScores.window, 'd30')
+          )
+        )
+        .get()
+
+      if (existingScore) {
+        const newAccuracy = (existingScore.accuracyPct * 0.9 + accuracyScore * 0.1)
+        await db
+          .update(deckScores)
+          .set({
+            accuracyPct: newAccuracy,
+            stabilityAvg: stability,
+            lapses: rating === 'again' ? existingScore.lapses + 1 : existingScore.lapses,
+            updatedAt: new Date(),
+          })
+          .where(eq(deckScores.id, existingScore.id))
+      } else {
+        await db.insert(deckScores).values({
+          userId,
+          deckId,
+          window: 'd30',
+          accuracyPct: accuracyScore,
+          stabilityAvg: stability,
+          lapses: rating === 'again' ? 1 : 0,
+        })
+      }
+    } catch (error) {
+      this.handleError(error, 'updateDeckScoreAfterReview')
+    }
+  }
+
   async getDailyReviewCount(userId: string, deckId: string): Promise<number> {
     try {
       this.validateRequiredFields({ userId, deckId }, ['userId', 'deckId'])

@@ -1,76 +1,41 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { db, studySessions } from '@/lib/db'
-import { authenticateRequest } from '@/lib/auth/middleware'
-import { eq, and } from 'drizzle-orm'
+import { withApiHandler, getJsonBody, ApiContext } from '@/lib/middleware/api-wrapper'
+import { studySessionRepository } from '@/lib/repositories'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ deckId: string }> }
-) {
-  try {
-    const user = await authenticateRequest(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+export const POST = withApiHandler(async ({ user }: ApiContext, routeContext: any) => {
+  const { params } = routeContext as { params: Promise<{ deckId: string }> }
+  const { deckId } = await params
 
-    const { deckId } = await params
+  const result = await studySessionRepository.create({
+    userId: user.id,
+    deckId,
+  })
 
-    const [session] = await db.insert(studySessions).values({
-      userId: user.id,
-      deckId,
-      startedAt: new Date(),
-      secondsActive: 0,
-    }).returning()
-
-    return NextResponse.json({ session })
-  } catch (error) {
-    console.error('Error creating study session:', error)
-    return NextResponse.json(
-      { error: 'Failed to create study session' },
-      { status: 500 }
-    )
+  if (!result.success || !result.data) {
+    throw new Error('Failed to create study session')
   }
-}
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ deckId: string }> }
-) {
-  try {
-    const user = await authenticateRequest(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  return { session: result.data }
+})
 
-    const { sessionId, secondsActive } = await request.json()
+export const PUT = withApiHandler(async ({ user, request }: ApiContext) => {
+  const { sessionId, secondsActive } = await getJsonBody(request)
 
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'sessionId is required' },
-        { status: 400 }
-      )
-    }
-
-    const [updatedSession] = await db
-      .update(studySessions)
-      .set({
-        endedAt: new Date(),
-        secondsActive: secondsActive || 0,
-      })
-      .where(
-        and(
-          eq(studySessions.id, sessionId),
-          eq(studySessions.userId, user.id)
-        )
-      )
-      .returning()
-
-    return NextResponse.json({ session: updatedSession })
-  } catch (error) {
-    console.error('Error updating study session:', error)
-    return NextResponse.json(
-      { error: 'Failed to update study session' },
-      { status: 500 }
-    )
+  if (!sessionId) {
+    throw new Error('bad request: sessionId is required')
   }
-}
+
+  const result = await studySessionRepository.updateWithOwnershipCheck(
+    sessionId, 
+    user.id, 
+    {
+      endedAt: new Date(),
+      secondsActive: secondsActive || 0,
+    }
+  )
+
+  if (!result.success || !result.data) {
+    throw new Error('Failed to update study session')
+  }
+
+  return { session: result.data }
+})

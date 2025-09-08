@@ -62,6 +62,42 @@ export class ApiTokenRepository extends BaseRepository {
     }
   }
 
+  async findTokensWithPreview(userId: string): Promise<Array<{id: string, name: string, createdAt: Date, lastUsedAt: Date | null, expiresAt: Date | null, tokenPreview: string | null}>> {
+    try {
+      this.validateRequiredFields({ userId }, ['userId'])
+      
+      const tokens = await db
+        .select({
+          id: apiTokens.id,
+          name: apiTokens.name,
+          createdAt: apiTokens.createdAt,
+          lastUsedAt: apiTokens.lastUsedAt,
+          expiresAt: apiTokens.expiresAt,
+          // Don't return the actual token for security
+          tokenPreview: apiTokens.token,
+        })
+        .from(apiTokens)
+        .where(eq(apiTokens.userId, userId))
+        .all()
+      
+      // Show only first 8 and last 4 characters of token
+      const tokensWithPreview = tokens.map(token => ({
+        id: token.id,
+        name: token.name,
+        createdAt: token.createdAt || new Date(),
+        lastUsedAt: token.lastUsedAt,
+        expiresAt: token.expiresAt,
+        tokenPreview: token.tokenPreview ? 
+          `${token.tokenPreview.slice(0, 8)}...${token.tokenPreview.slice(-4)}` : 
+          null
+      }))
+      
+      return tokensWithPreview
+    } catch (error) {
+      this.handleError(error, 'findTokensWithPreview')
+    }
+  }
+
   async findValidByToken(token: string): Promise<ApiToken | null> {
     try {
       this.validateRequiredFields({ token }, ['token'])
@@ -186,6 +222,29 @@ export class ApiTokenRepository extends BaseRepository {
       }
     } catch (error) {
       this.handleError(error, 'delete')
+    }
+  }
+
+  async deleteByIdAndUserId(tokenId: string, userId: string): Promise<DeleteResult> {
+    try {
+      this.validateRequiredFields({ tokenId, userId }, ['tokenId', 'userId'])
+
+      // Delete only if it belongs to the user
+      await db
+        .delete(apiTokens)
+        .where(
+          and(
+            eq(apiTokens.id, tokenId),
+            eq(apiTokens.userId, userId)
+          )
+        )
+
+      return {
+        success: true,
+        deletedId: tokenId,
+      }
+    } catch (error) {
+      this.handleError(error, 'deleteByIdAndUserId')
     }
   }
 

@@ -208,6 +208,43 @@ export class StudySessionRepository extends BaseRepository {
     }
   }
 
+  async updateWithOwnershipCheck(sessionId: string, userId: string, input: UpdateStudySessionInput): Promise<UpdateResult<StudySession>> {
+    try {
+      this.validateRequiredFields({ sessionId, userId }, ['sessionId', 'userId'])
+
+      const updateData: Partial<NewStudySession> = {}
+      
+      if (input.endedAt !== undefined) {
+        updateData.endedAt = input.endedAt
+      }
+      
+      if (input.secondsActive !== undefined) {
+        updateData.secondsActive = input.secondsActive
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        return { success: true, changes: 0 }
+      }
+
+      const [updatedSession] = await db
+        .update(studySessions)
+        .set(updateData)
+        .where(and(
+          eq(studySessions.id, sessionId),
+          eq(studySessions.userId, userId)
+        ))
+        .returning()
+
+      return {
+        success: true,
+        data: updatedSession,
+        changes: updatedSession ? 1 : 0,
+      }
+    } catch (error) {
+      this.handleError(error, 'updateWithOwnershipCheck')
+    }
+  }
+
   async endSession(sessionId: string, secondsActive?: number): Promise<UpdateResult<StudySession>> {
     try {
       this.validateRequiredFields({ sessionId }, ['sessionId'])

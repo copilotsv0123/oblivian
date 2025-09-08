@@ -1,28 +1,17 @@
 import { withApiHandler, getJsonBody, ApiContext } from '@/lib/middleware/api-wrapper'
-import { db, cards, decks } from '@/lib/db'
-import { eq, and } from 'drizzle-orm'
-import { transformDbCardToApiCard } from '@/lib/db/transformers'
-import { cardRepository } from '@/lib/repositories/card-repository'
+import { cardRepository } from '@/lib/repositories'
 
 export const GET = withApiHandler(async ({ user }: ApiContext, routeContext: any) => {
   const { params } = routeContext as { params: Promise<{ id: string }> }
   const { id } = await params
-  const card = await db
-    .select({
-      card: cards,
-      deck: decks,
-    })
-    .from(cards)
-    .innerJoin(decks, eq(cards.deckId, decks.id))
-    .where(and(eq(cards.id, id), eq(decks.ownerUserId, user.id)))
-    .get()
-
-  if (!card) {
+  
+  const result = await cardRepository.findByIdWithDeckOwnership(id, user.id)
+  
+  if (!result) {
     throw new Error('not found: Card not found')
   }
 
-  const transformedCard = transformDbCardToApiCard(card.card)
-  return { card: transformedCard, deck: card.deck }
+  return { card: result.card, deck: result.deck }
 })
 
 export const PUT = withApiHandler(async ({ user, request }: ApiContext, routeContext: any) => {
@@ -30,54 +19,21 @@ export const PUT = withApiHandler(async ({ user, request }: ApiContext, routeCon
   const { id } = await params
   const { front, back, choices, explanation } = await getJsonBody(request)
 
-  const existingCard = await db
-    .select({
-      card: cards,
-      deck: decks,
-    })
-    .from(cards)
-    .innerJoin(decks, eq(cards.deckId, decks.id))
-    .where(and(eq(cards.id, id), eq(decks.ownerUserId, user.id)))
-    .get()
+  const updatedCard = await cardRepository.updateWithOwnershipCheck(id, user.id, {
+    front,
+    back,
+    choices,
+    explanation
+  })
 
-  if (!existingCard) {
-    throw new Error('not found: Card not found')
-  }
-
-  const [updatedCard] = await db
-    .update(cards)
-    .set({
-      front,
-      back,
-      choices: choices ? JSON.stringify(choices) : undefined,
-      explanation,
-      updatedAt: new Date(),
-    })
-    .where(eq(cards.id, id))
-    .returning()
-
-  const transformedCard = transformDbCardToApiCard(updatedCard)
-  return { card: transformedCard }
+  return { card: updatedCard }
 })
 
 export const DELETE = withApiHandler(async ({ user }: ApiContext, routeContext: any) => {
   const { params } = routeContext as { params: Promise<{ id: string }> }
   const { id } = await params
-  const existingCard = await db
-    .select({
-      card: cards,
-      deck: decks,
-    })
-    .from(cards)
-    .innerJoin(decks, eq(cards.deckId, decks.id))
-    .where(and(eq(cards.id, id), eq(decks.ownerUserId, user.id)))
-    .get()
-
-  if (!existingCard) {
-    throw new Error('not found: Card not found')
-  }
-
-  await cardRepository.delete(id)
-
-  return { success: true }
+  
+  const result = await cardRepository.deleteWithOwnershipCheck(id, user.id)
+  
+  return { success: result.success }
 })

@@ -4,6 +4,7 @@ import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
+import AppLayout from '@/components/AppLayout'
 
 interface Card {
   id: string
@@ -129,17 +130,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
   }
 
   return (
-    <div className="min-h-screen bg-accent">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/dashboard" className="text-primary hover:underline">
-              ← Back to Dashboard
-            </Link>
-          </div>
-        </div>
-      </nav>
-
+    <AppLayout>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="card mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">{deck.title}</h1>
@@ -292,7 +283,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
         </div>
       )}
 
-    </div>
+    </AppLayout>
   )
 }
 

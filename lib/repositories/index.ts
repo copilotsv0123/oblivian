@@ -38,5 +38,12 @@ export type {
   StudySessionStats 
 } from './study-session-repository'
 
+// Deck Score Repository
+export { DeckScoreRepository, deckScoreRepository } from './deck-score-repository'
+export type { 
+  DeckScoreStats, 
+  UpsertDeckScoreInput 
+} from './deck-score-repository'
+
 // Individual repository exports are available above
 // Import specific repositories as needed in your code

@@ -1,34 +1,12 @@
 import { withApiHandler, getJsonBody, getParams, ApiContext } from '@/lib/middleware/api-wrapper'
-import { db } from '@/lib/db'
-import { apiTokens } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { apiTokenRepository } from '@/lib/repositories'
 import crypto from 'crypto'
 
 // GET /api/tokens - List user's tokens
 export const GET = withApiHandler(async ({ user }: ApiContext) => {
-  const tokens = await db
-    .select({
-      id: apiTokens.id,
-      name: apiTokens.name,
-      createdAt: apiTokens.createdAt,
-      lastUsedAt: apiTokens.lastUsedAt,
-      expiresAt: apiTokens.expiresAt,
-      // Don't return the actual token for security
-      tokenPreview: apiTokens.token,
-    })
-    .from(apiTokens)
-    .where(eq(apiTokens.userId, user.id))
-    .all()
+  const tokens = await apiTokenRepository.findTokensWithPreview(user.id)
 
-  // Show only first 8 and last 4 characters of token
-  const tokensWithPreview = tokens.map(token => ({
-    ...token,
-    tokenPreview: token.tokenPreview ? 
-      `${token.tokenPreview.slice(0, 8)}...${token.tokenPreview.slice(-4)}` : 
-      null
-  }))
-
-  return { tokens: tokensWithPreview }
+  return { tokens }
 })
 
 // POST /api/tokens - Create a new token
@@ -43,30 +21,31 @@ export const POST = withApiHandler(async ({ user, request }: ApiContext) => {
   const tokenValue = `obl_${crypto.randomBytes(32).toString('base64url')}`
   
   // Calculate expiration date if provided
-  let expiresAt = null
+  let expiresAt: Date | undefined = undefined
   if (expiresInDays && typeof expiresInDays === 'number') {
     expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + expiresInDays)
   }
 
-  const [newToken] = await db
-    .insert(apiTokens)
-    .values({
-      userId: user.id,
-      name,
-      token: tokenValue,
-      expiresAt,
-    })
-    .returning()
+  const result = await apiTokenRepository.create({
+    userId: user.id,
+    name,
+    token: tokenValue,
+    expiresAt,
+  })
+
+  if (!result.success || !result.data) {
+    throw new Error('Failed to create token')
+  }
 
   // Return the full token only on creation
   return {
     token: {
-      id: newToken.id,
-      name: newToken.name,
-      token: newToken.token, // Full token shown only once
-      createdAt: newToken.createdAt,
-      expiresAt: newToken.expiresAt,
+      id: result.data.id,
+      name: result.data.name,
+      token: result.data.token, // Full token shown only once
+      createdAt: result.data.createdAt,
+      expiresAt: result.data.expiresAt,
     },
     message: 'Save this token securely. You won\'t be able to see it again.',
   }
@@ -81,15 +60,7 @@ export const DELETE = withApiHandler(async ({ user, request }: ApiContext) => {
     throw new Error('bad request: Token ID is required')
   }
 
-  // Delete only if it belongs to the user
-  await db
-    .delete(apiTokens)
-    .where(
-      and(
-        eq(apiTokens.id, tokenId),
-        eq(apiTokens.userId, user.id)
-      )
-    )
+  await apiTokenRepository.deleteByIdAndUserId(tokenId, user.id)
 
   return { message: 'Token deleted successfully' }
 })

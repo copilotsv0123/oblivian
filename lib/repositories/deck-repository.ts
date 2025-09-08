@@ -54,6 +54,51 @@ export class DeckRepository extends BaseRepository {
       .get()
   }
 
+  async validateOwnership(deckId: string, userId: string): Promise<boolean> {
+    try {
+      this.validateRequiredFields({ deckId, userId }, ['deckId', 'userId'])
+      
+      const deck = await db
+        .select({ id: decks.id })
+        .from(decks)
+        .where(and(
+          eq(decks.id, deckId),
+          eq(decks.ownerUserId, userId)
+        ))
+        .get()
+      
+      return !!deck
+    } catch (error) {
+      this.handleError(error, 'validateOwnership')
+    }
+  }
+
+  async findByIdWithCards(deckId: string, userId: string) {
+    try {
+      this.validateRequiredFields({ deckId, userId }, ['deckId', 'userId'])
+      
+      const deck = await db
+        .select()
+        .from(decks)
+        .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
+        .get()
+
+      if (!deck) {
+        return null
+      }
+
+      const deckCards = await db
+        .select()
+        .from(cards)
+        .where(eq(cards.deckId, deckId))
+        .all()
+
+      return { deck, cards: deckCards }
+    } catch (error) {
+      this.handleError(error, 'findByIdWithCards')
+    }
+  }
+
   async create(data: {
     userId: string
     title: string
@@ -110,6 +155,53 @@ export class DeckRepository extends BaseRepository {
       .returning()
     
     return updated
+  }
+
+  async updateWithOwnershipCheck(deckId: string, userId: string, data: Partial<{
+    title: string
+    description: string
+    level: 'simple' | 'mid' | 'expert'
+    language: string
+    isPublic: boolean
+  }>) {
+    try {
+      this.validateRequiredFields({ deckId, userId }, ['deckId', 'userId'])
+      
+      // First check ownership
+      const existingDeck = await db
+        .select()
+        .from(decks)
+        .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
+        .get()
+
+      if (!existingDeck) {
+        throw new Error('not found: Deck not found')
+      }
+
+      const updateData: any = {}
+      
+      if (data.title !== undefined) updateData.title = data.title
+      if (data.description !== undefined) updateData.description = data.description
+      if (data.level !== undefined) updateData.level = data.level
+      if (data.language !== undefined) updateData.language = data.language
+      if (data.isPublic !== undefined) updateData.isPublic = data.isPublic
+      
+      if (Object.keys(updateData).length === 0) {
+        return existingDeck
+      }
+      
+      updateData.updatedAt = new Date()
+      
+      const [updated] = await db
+        .update(decks)
+        .set(updateData)
+        .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
+        .returning()
+      
+      return updated
+    } catch (error) {
+      this.handleError(error, 'updateWithOwnershipCheck')
+    }
   }
 
   async delete(deckId: string): Promise<DeleteResult> {
