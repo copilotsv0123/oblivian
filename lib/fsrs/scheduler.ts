@@ -1,6 +1,6 @@
 import { fsrs, Rating, Card as FSRSCard, Grade, RecordLog, createEmptyCard } from 'ts-fsrs'
-import { db, reviews, cards } from '@/lib/db'
-import { eq, and, lte, desc, isNull } from 'drizzle-orm'
+import { reviewRepository } from '@/lib/repositories/review-repository'
+import { cardRepository } from '@/lib/repositories/card-repository'
 
 const f = fsrs()
 
@@ -28,12 +28,8 @@ export interface CardSchedule {
 }
 
 export async function getCardSchedule(cardId: string, userId: string): Promise<CardSchedule> {
-  const lastReview = await db
-    .select()
-    .from(reviews)
-    .where(and(eq(reviews.cardId, cardId), eq(reviews.userId, userId)))
-    .orderBy(desc(reviews.reviewedAt))
-    .get()
+  const userCardReviews = await reviewRepository.findByUserAndCard(userId, cardId)
+  const lastReview = userCardReviews[0] // Already ordered by reviewedAt desc
 
   if (!lastReview || !lastReview.state) {
     const newCard = createEmptyCard()
@@ -91,16 +87,15 @@ export async function scheduleReview(
   const recordLog = f.repeat(fsrsCard, now)[ratingMap[rating]]
   const nextCard = recordLog.card
 
-  await db.insert(reviews).values({
+  await reviewRepository.create({
     userId,
     cardId,
     rating,
     scheduledAt: nextCard.due,
-    reviewedAt: now,
     intervalDays: nextCard.scheduled_days,
     stability: nextCard.stability,
     difficulty: nextCard.difficulty,
-    state: JSON.stringify(nextCard),
+    state: nextCard,
   })
 
   return {
@@ -119,44 +114,5 @@ export async function scheduleReview(
 }
 
 export async function getDueCards(userId: string, deckId: string, limit: number = 20) {
-  const now = new Date()
-  
-  const dueReviews = await db
-    .selectDistinct({
-      cardId: reviews.cardId,
-      scheduledAt: reviews.scheduledAt,
-    })
-    .from(reviews)
-    .innerJoin(cards, eq(reviews.cardId, cards.id))
-    .where(
-      and(
-        eq(reviews.userId, userId),
-        eq(cards.deckId, deckId),
-        lte(reviews.scheduledAt, now)
-      )
-    )
-    .orderBy(reviews.scheduledAt)
-    .limit(limit)
-    .all()
-
-  const newCards = await db
-    .select()
-    .from(cards)
-    .leftJoin(reviews, and(
-      eq(cards.id, reviews.cardId),
-      eq(reviews.userId, userId)
-    ))
-    .where(
-      and(
-        eq(cards.deckId, deckId),
-        isNull(reviews.id)
-      )
-    )
-    .limit(Math.max(0, limit - dueReviews.length))
-    .all()
-
-  return {
-    due: dueReviews.map(r => r.cardId),
-    new: newCards.map(c => c.cards.id),
-  }
+  return await cardRepository.findDueAndNewCards(userId, deckId, limit)
 }

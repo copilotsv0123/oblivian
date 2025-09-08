@@ -3,6 +3,7 @@ import { db, cards, decks } from '@/lib/db'
 import { authenticateRequest } from '@/lib/auth/middleware'
 import { eq, and } from 'drizzle-orm'
 import { transformDbCardToApiCard } from '@/lib/db/transformers'
+import { cardRepository } from '@/lib/repositories/card-repository'
 
 export async function GET(
   request: NextRequest,
@@ -115,7 +116,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Card not found' }, { status: 404 })
     }
 
-    await db.delete(cards).where(eq(cards.id, id))
+    await cardRepository.delete(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

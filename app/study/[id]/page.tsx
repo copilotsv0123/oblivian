@@ -3,6 +3,7 @@
 import { useState, useEffect, use, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ReactMarkdown from 'react-markdown'
 
 interface Card {
   id: string
@@ -236,9 +237,11 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
             ) : (
               <div className="space-y-6">
                 <div className="p-6 bg-gray-50 rounded-lg">
-                  <p className="text-xl text-gray-800">
-                    {currentCard.back || currentCard.explanation || 'No answer provided'}
-                  </p>
+                  <div className="text-xl text-gray-800 prose prose-lg max-w-none">
+                    <ReactMarkdown>
+                      {currentCard.back || currentCard.explanation || 'No answer provided'}
+                    </ReactMarkdown>
+                  </div>
                 </div>
 
                 <div className="space-y-3">

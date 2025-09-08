@@ -3,6 +3,7 @@
 import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ReactMarkdown from 'react-markdown'
 
 interface Card {
   id: string
@@ -27,6 +28,8 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
   const [cards, setCards] = useState<Card[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddCard, setShowAddCard] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [similarDecks, setSimilarDecks] = useState<any[]>([])
 
   const fetchDeck = useCallback(async () => {
@@ -68,6 +71,45 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
 
   const startStudySession = () => {
     router.push(`/study/${resolvedParams.id}`)
+  }
+
+  const handleDeleteDeck = async () => {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/decks/${resolvedParams.id}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        throw new Error('Failed to delete deck')
+      }
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('Error deleting deck:', error)
+      alert('Failed to delete deck')
+    } finally {
+      setDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }
+
+  const handleDeleteCard = async (cardId: string) => {
+    if (!confirm('Are you sure you want to delete this card?')) {
+      return
+    }
+    
+    try {
+      const res = await fetch(`/api/cards/${cardId}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        throw new Error('Failed to delete card')
+      }
+      // Refresh the deck data
+      fetchDeck()
+    } catch (error) {
+      console.error('Error deleting card:', error)
+      alert('Failed to delete card')
+    }
   }
 
   if (loading) {
@@ -128,6 +170,12 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
           >
             Add Card Manually
           </button>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+          >
+            Delete Deck
+          </button>
         </div>
 
         {cards.length === 0 ? (
@@ -157,9 +205,18 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                     </span>
                     <p className="text-primary font-medium mt-1">{card.front}</p>
                     {card.back && (
-                      <p className="text-gray-600 mt-2">Answer: {card.back}</p>
+                      <div className="text-gray-600 mt-2 prose prose-sm max-w-none">
+                        <span className="font-medium">Answer: </span>
+                        <ReactMarkdown>{card.back}</ReactMarkdown>
+                      </div>
                     )}
                   </div>
+                  <button
+                    onClick={() => handleDeleteCard(card.id)}
+                    className="ml-4 px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             ))}
@@ -206,6 +263,33 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
             fetchDeck()
           }}
         />
+      )}
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+          <div className="card max-w-md w-full">
+            <h3 className="text-2xl font-bold text-red-600 mb-4">Delete Deck</h3>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete &quot;{deck?.title}&quot;? This action cannot be undone and will delete all cards in this deck.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDeleteDeck}
+                className="btn-primary bg-red-500 hover:bg-red-600 flex-1"
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting...' : 'Delete Deck'}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="btn-outline flex-1"
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

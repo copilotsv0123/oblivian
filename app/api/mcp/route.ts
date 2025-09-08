@@ -43,8 +43,18 @@ const TOOLS = [
         description: { type: 'string', description: 'Description of the deck' },
         level: {
           type: 'string',
-          enum: ['simple', 'intermediate', 'expert'],
+          enum: ['simple', 'mid', 'expert'],
           description: 'Difficulty level',
+        },
+        language: {
+          type: 'string',
+          description: 'Language of the deck (e.g., en, es, fr, de, it, pt, ru, zh, ja, ko)',
+          default: 'en'
+        },
+        isPublic: {
+          type: 'boolean',
+          description: 'Whether the deck should be publicly visible',
+          default: false
         },
       },
       required: ['title'],
@@ -98,6 +108,17 @@ const TOOLS = [
         cardId: { type: 'string', description: 'ID of the card to delete' },
       },
       required: ['cardId'],
+    },
+  },
+  {
+    name: 'delete_deck',
+    description: 'Delete a flashcard deck and all its cards',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        deckId: { type: 'string', description: 'ID of the deck to delete' },
+      },
+      required: ['deckId'],
     },
   },
   {
@@ -161,7 +182,9 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
               userId,
               title: args.title,
               description: args.description,
-              level: args.level,
+              level: args.level || 'simple',
+              language: args.language || 'en',
+              isPublic: args.isPublic || false,
             })
             
             return {
@@ -216,6 +239,26 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
                 content: [{
                   type: 'text',
                   text: JSON.stringify({ deleted: deleteResult.success, cardId: args.cardId }, null, 2),
+                }],
+              },
+            }
+
+          case 'delete_deck':
+            // First check if user owns the deck
+            const deckToDelete = await deckRepository.findByIdAndUserId(args.deckId, userId)
+            if (!deckToDelete) {
+              throw new Error(`Deck with ID ${args.deckId} not found or access denied`)
+            }
+            
+            const deleteDeckResult = await deckRepository.delete(args.deckId)
+            
+            return {
+              jsonrpc: '2.0',
+              id: request.id,
+              result: {
+                content: [{
+                  type: 'text',
+                  text: JSON.stringify({ deleted: deleteDeckResult.success, deckId: args.deckId, title: deckToDelete.title }, null, 2),
                 }],
               },
             }

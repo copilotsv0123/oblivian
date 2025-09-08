@@ -154,17 +154,59 @@ export default function SettingsPage() {
         <div className="card">
           <h2 className="text-2xl font-bold text-primary mb-4">MCP Setup Instructions</h2>
           <p className="text-gray-600 mb-4">
-            To use your API token with Claude Desktop:
+            To use your API token with Claude Desktop MCP integration:
           </p>
           <ol className="list-decimal list-inside space-y-2 text-gray-700">
             <li>Create an API token above</li>
-            <li>Run <code className="bg-gray-100 px-2 py-1 rounded">npm run mcp:setup</code> in your terminal</li>
-            <li>Add your token to the MCP server configuration</li>
-            <li>Restart Claude Desktop</li>
+            <li>Install the MCP server by running: <code className="bg-gray-100 px-2 py-1 rounded">npm install -g @oblivian/mcp-server</code></li>
+            <li>Add this to your Claude Desktop MCP configuration (<code className="bg-gray-100 px-2 py-1 rounded">~/.config/claude-desktop/claude_desktop_config.json</code>):</li>
           </ol>
-          <Link href="/MCP_SETUP.md" className="text-primary hover:underline mt-4 inline-block">
-            View detailed setup guide →
-          </Link>
+          
+          <div className="bg-gray-50 p-4 rounded-lg mt-4 mb-4">
+            <pre className="text-sm overflow-x-auto">
+{`{
+  "mcpServers": {
+    "oblivian": {
+      "command": "node",
+      "args": ["path/to/oblivian-mcp-server.js"],
+      "env": {
+        "OBLIVIAN_API_TOKEN": "your-api-token-here",
+        "OBLIVIAN_BASE_URL": "http://localhost:3000"
+      }
+    }
+  }
+}`}
+            </pre>
+          </div>
+
+          <p className="text-gray-600 mb-4">
+            <strong>Available MCP Tools:</strong>
+          </p>
+          <div className="grid md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-primary mb-2">Deck Management</h4>
+              <ul className="text-sm text-gray-700 space-y-1">
+                <li>• <code>list_decks</code> - View all your decks</li>
+                <li>• <code>create_deck</code> - Create new decks with level/language</li>
+                <li>• <code>delete_deck</code> - Remove decks completely</li>
+              </ul>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-primary mb-2">Card Management</h4>
+              <ul className="text-sm text-gray-700 space-y-1">
+                <li>• <code>list_cards</code> - View cards in a deck</li>
+                <li>• <code>create_cards_batch</code> - Create multiple cards at once</li>
+                <li>• <code>delete_card</code> - Remove individual cards</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>💡 Pro tip:</strong> Use the <code>create_cards_batch</code> tool to generate multiple flashcards at once from any content. 
+              Claude can automatically create cards with different types (basic, cloze, multiple choice, explanation) based on your material.
+            </p>
+          </div>
         </div>
       </main>
 

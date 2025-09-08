@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db, decks, cards } from '@/lib/db'
 import { authenticateRequest } from '@/lib/auth/middleware'
 import { eq, and } from 'drizzle-orm'
+import { deckRepository } from '@/lib/repositories/deck-repository'
 
 export async function GET(
   request: NextRequest,
@@ -97,19 +98,13 @@ export async function DELETE(
     }
 
     const { id } = await params
-    const existingDeck = await db
-      .select()
-      .from(decks)
-      .where(and(eq(decks.id, id), eq(decks.ownerUserId, user.id)))
-      .get()
+    const existingDeck = await deckRepository.findByIdAndUserId(id, user.id)
 
     if (!existingDeck) {
       return NextResponse.json({ error: 'Deck not found' }, { status: 404 })
     }
 
-    await db
-      .delete(decks)
-      .where(and(eq(decks.id, id), eq(decks.ownerUserId, user.id)))
+    await deckRepository.delete(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

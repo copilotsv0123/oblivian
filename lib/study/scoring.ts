@@ -1,5 +1,4 @@
-import { db, deckScores, reviews, cards } from '@/lib/db'
-import { eq, and, sql, gte } from 'drizzle-orm'
+import { deckScoreRepository } from '@/lib/repositories/deck-score-repository'
 
 interface ScoreWindow {
   window: 'd7' | 'd30' | 'd90'
@@ -19,35 +18,10 @@ const SCORE_WINDOWS: ScoreWindow[] = [
 export async function updateDeckScores(userId: string, deckId: string) {
   try {
     for (const { window, days } of SCORE_WINDOWS) {
-      const startDate = new Date()
-      startDate.setDate(startDate.getDate() - days)
-
       // Calculate accuracy for the time window
-      const stats = await db
-        .select({
-          totalReviews: sql<number>`COUNT(*)`,
-          correctReviews: sql<number>`SUM(CASE 
-            WHEN reviews.rating IN ('good', 'easy') THEN 1 
-            ELSE 0 
-          END)`,
-          avgStability: sql<number>`AVG(reviews.stability)`,
-          lapsesCount: sql<number>`SUM(CASE 
-            WHEN reviews.rating = 'again' THEN 1 
-            ELSE 0 
-          END)`,
-        })
-        .from(reviews)
-        .innerJoin(cards, eq(reviews.cardId, cards.id))
-        .where(
-          and(
-            eq(reviews.userId, userId),
-            eq(cards.deckId, deckId),
-            gte(reviews.reviewedAt, startDate)
-          )
-        )
-        .get()
+      const stats = await deckScoreRepository.getReviewStatsForTimeWindow(userId, deckId, days)
 
-      if (!stats || stats.totalReviews === 0) {
+      if (stats.totalReviews === 0) {
         continue
       }
 
@@ -56,25 +30,14 @@ export async function updateDeckScores(userId: string, deckId: string) {
       const lapses = stats.lapsesCount || 0
 
       // Upsert deck score
-      await db
-        .insert(deckScores)
-        .values({
-          userId,
-          deckId,
-          window,
-          accuracyPct,
-          stabilityAvg,
-          lapses,
-        })
-        .onConflictDoUpdate({
-          target: [deckScores.userId, deckScores.deckId, deckScores.window],
-          set: {
-            accuracyPct,
-            stabilityAvg,
-            lapses,
-            updatedAt: new Date(),
-          },
-        })
+      await deckScoreRepository.upsertDeckScore({
+        userId,
+        deckId,
+        window,
+        accuracyPct,
+        stabilityAvg,
+        lapses,
+      })
     }
   } catch (error) {
     console.error('Error updating deck scores:', error)
@@ -85,26 +48,7 @@ export async function updateDeckScores(userId: string, deckId: string) {
  * Get deck scores for display
  */
 export async function getDeckScores(userId: string, deckId: string) {
-  const scores = await db
-    .select()
-    .from(deckScores)
-    .where(
-      and(
-        eq(deckScores.userId, userId),
-        eq(deckScores.deckId, deckId)
-      )
-    )
-    .all()
-
-  // Convert to display format
-  const scoreMap: Record<string, string> = {}
-  
-  for (const score of scores) {
-    const level = getScoreLevel(score.accuracyPct)
-    scoreMap[score.window] = level
-  }
-
-  return scoreMap
+  return await deckScoreRepository.findByUserAndDeck(userId, deckId)
 }
 
 /**
@@ -120,47 +64,11 @@ function getScoreLevel(accuracyPct: number): string {
  * Check if daily load is too high and return warning
  */
 export async function checkDailyLoadWarning(userId: string, deckId: string): Promise<string | null> {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  
   // Count reviews done today
-  const todayReviews = await db
-    .select({
-      count: sql<number>`COUNT(*)`,
-    })
-    .from(reviews)
-    .innerJoin(cards, eq(reviews.cardId, cards.id))
-    .where(
-      and(
-        eq(reviews.userId, userId),
-        eq(cards.deckId, deckId),
-        gte(reviews.reviewedAt, today)
-      )
-    )
-    .get()
-
-  const reviewCount = todayReviews?.count || 0
+  const reviewCount = await deckScoreRepository.getDailyReviewCount(userId, deckId)
 
   // Check average daily load over past 7 days
-  const weekAgo = new Date()
-  weekAgo.setDate(weekAgo.getDate() - 7)
-  
-  const weekStats = await db
-    .select({
-      avgDaily: sql<number>`COUNT(*) / 7.0`,
-    })
-    .from(reviews)
-    .innerJoin(cards, eq(reviews.cardId, cards.id))
-    .where(
-      and(
-        eq(reviews.userId, userId),
-        eq(cards.deckId, deckId),
-        gte(reviews.reviewedAt, weekAgo)
-      )
-    )
-    .get()
-
-  const avgDaily = weekStats?.avgDaily || 0
+  const avgDaily = await deckScoreRepository.getWeeklyAverageReviews(userId, deckId)
 
   // Show warning if today's load is significantly higher than average
   if (reviewCount > 50 && reviewCount > avgDaily * 1.5) {

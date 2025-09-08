@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
-import { cards, type Card, type NewCard } from '@/lib/db/schema'
-import { eq, and, desc, inArray } from 'drizzle-orm'
+import { cards, reviews, type Card, type NewCard } from '@/lib/db/schema'
+import { eq, and, desc, inArray, lte, isNull } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 import { CreateCardInput, UpdateCardInput, Choice } from '@/lib/types/cards'
 import { transformDbCardToApiCard, transformDbCardsToApiCards } from '@/lib/db/transformers'
@@ -129,6 +129,57 @@ export class CardRepository extends BaseRepository {
       }
     } catch (error) {
       this.handleError(error, 'delete')
+    }
+  }
+
+  async findDueAndNewCards(userId: string, deckId: string, limit = 20) {
+    try {
+      this.validateRequiredFields({ userId, deckId }, ['userId', 'deckId'])
+      
+      const now = new Date()
+      
+      // Get due reviews (cards that have been reviewed and are due for review)
+      const dueReviews = await db
+        .selectDistinct({
+          cardId: reviews.cardId,
+          scheduledAt: reviews.scheduledAt,
+        })
+        .from(reviews)
+        .innerJoin(cards, eq(reviews.cardId, cards.id))
+        .where(
+          and(
+            eq(reviews.userId, userId),
+            eq(cards.deckId, deckId),
+            lte(reviews.scheduledAt, now)
+          )
+        )
+        .orderBy(reviews.scheduledAt)
+        .limit(limit)
+        .all()
+
+      // Get new cards (cards that have never been reviewed by this user)
+      const newCards = await db
+        .select()
+        .from(cards)
+        .leftJoin(reviews, and(
+          eq(cards.id, reviews.cardId),
+          eq(reviews.userId, userId)
+        ))
+        .where(
+          and(
+            eq(cards.deckId, deckId),
+            isNull(reviews.id)
+          )
+        )
+        .limit(Math.max(0, limit - dueReviews.length))
+        .all()
+
+      return {
+        due: dueReviews.map(r => r.cardId),
+        new: newCards.map(c => c.cards.id),
+      }
+    } catch (error) {
+      this.handleError(error, 'findDueAndNewCards')
     }
   }
 

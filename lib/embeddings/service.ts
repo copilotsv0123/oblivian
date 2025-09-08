@@ -1,5 +1,4 @@
-import { db, deckEmbeddings, decks, cards } from '@/lib/db'
-import { eq, sql, and, ne, desc } from 'drizzle-orm'
+import { deckEmbeddingRepository } from '@/lib/repositories/deck-embedding-repository'
 
 /**
  * Simple text embedding using TF-IDF-like approach
@@ -75,60 +74,16 @@ export function cosineSimilarity(a: number[], b: number[]): number {
  * Generate and store embedding for a deck
  */
 export async function generateDeckEmbedding(deckId: string) {
-  // Get deck info
-  const deck = await db
-    .select()
-    .from(decks)
-    .where(eq(decks.id, deckId))
-    .get()
+  // Get deck content for embedding
+  const combinedText = await deckEmbeddingRepository.getDeckContentForEmbedding(deckId)
   
-  if (!deck) return null
-  
-  // Get sample cards (first 10)
-  const sampleCards = await db
-    .select()
-    .from(cards)
-    .where(eq(cards.deckId, deckId))
-    .limit(10)
-    .all()
-  
-  // Combine text for embedding
-  const combinedText = [
-    deck.title,
-    deck.description || '',
-    ...sampleCards.map(c => `${c.front} ${c.back || ''}`)
-  ].join(' ')
+  if (!combinedText) return null
   
   // Generate embedding
   const vector = generateEmbedding(combinedText)
   
   // Store or update embedding
-  const existing = await db
-    .select()
-    .from(deckEmbeddings)
-    .where(eq(deckEmbeddings.deckId, deckId))
-    .get()
-  
-  if (existing) {
-    await db
-      .update(deckEmbeddings)
-      .set({
-        vector: JSON.stringify(vector),
-        dim: vector.length,
-        model: 'simple-tfidf',
-        updatedAt: new Date(),
-      })
-      .where(eq(deckEmbeddings.id, existing.id))
-  } else {
-    await db
-      .insert(deckEmbeddings)
-      .values({
-        deckId,
-        vector: JSON.stringify(vector),
-        dim: vector.length,
-        model: 'simple-tfidf',
-      })
-  }
+  await deckEmbeddingRepository.upsertEmbedding(deckId, vector, 'simple-tfidf')
   
   return vector
 }
@@ -138,11 +93,7 @@ export async function generateDeckEmbedding(deckId: string) {
  */
 export async function findSimilarDecks(deckId: string, limit = 5) {
   // Get current deck embedding
-  const currentEmbedding = await db
-    .select()
-    .from(deckEmbeddings)
-    .where(eq(deckEmbeddings.deckId, deckId))
-    .get()
+  const currentEmbedding = await deckEmbeddingRepository.findByDeckId(deckId)
   
   if (!currentEmbedding) {
     // Generate embedding if it doesn't exist
@@ -152,52 +103,14 @@ export async function findSimilarDecks(deckId: string, limit = 5) {
   
   const currentVector = JSON.parse(currentEmbedding.vector as string) as number[]
   
-  // Get all other deck embeddings
-  const allEmbeddings = await db
-    .select({
-      deckId: deckEmbeddings.deckId,
-      vector: deckEmbeddings.vector,
-      deck: decks,
-    })
-    .from(deckEmbeddings)
-    .innerJoin(decks, eq(deckEmbeddings.deckId, decks.id))
-    .where(
-      and(
-        ne(deckEmbeddings.deckId, deckId),
-        eq(decks.isPublic, true)
-      )
-    )
-    .all()
-  
-  // Calculate similarities
-  const similarities = allEmbeddings.map(item => {
-    const vector = JSON.parse(item.vector as string) as number[]
-    const similarity = cosineSimilarity(currentVector, vector)
-    return {
-      deckId: item.deckId,
-      deck: item.deck,
-      similarity,
-    }
-  })
-  
-  // Sort by similarity and return top N
-  similarities.sort((a, b) => b.similarity - a.similarity)
-  
-  return similarities.slice(0, limit).map(item => ({
-    ...item.deck,
-    similarity: item.similarity,
-  }))
+  return await deckEmbeddingRepository.findSimilarDecks(deckId, currentVector, limit)
 }
 
 /**
  * Generate embeddings for all public decks (batch job)
  */
 export async function generateAllEmbeddings() {
-  const publicDecks = await db
-    .select()
-    .from(decks)
-    .where(eq(decks.isPublic, true))
-    .all()
+  const publicDecks = await deckEmbeddingRepository.findAllPublicDecks()
   
   for (const deck of publicDecks) {
     await generateDeckEmbedding(deck.id)

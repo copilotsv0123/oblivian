@@ -1,6 +1,5 @@
-import { db } from '@/lib/db'
-import { apiTokens, users } from '@/lib/db/schema'
-import { eq, and, or, isNull, gte } from 'drizzle-orm'
+import { apiTokenRepository } from '@/lib/repositories/api-token-repository'
+import { userRepository } from '@/lib/repositories/user-repository'
 
 export async function validateApiToken(token: string) {
   if (!token || !token.startsWith('obl_')) {
@@ -8,40 +7,24 @@ export async function validateApiToken(token: string) {
   }
 
   try {
-    // Find token and associated user
-    const result = await db
-      .select({
-        tokenId: apiTokens.id,
-        userId: apiTokens.userId,
-        userEmail: users.email,
-        expiresAt: apiTokens.expiresAt,
-      })
-      .from(apiTokens)
-      .innerJoin(users, eq(apiTokens.userId, users.id))
-      .where(
-        and(
-          eq(apiTokens.token, token),
-          or(
-            isNull(apiTokens.expiresAt),
-            gte(apiTokens.expiresAt, new Date())
-          )
-        )
-      )
-      .get()
+    // Find valid token
+    const apiToken = await apiTokenRepository.findValidByToken(token)
+    if (!apiToken) {
+      return null
+    }
 
-    if (!result) {
+    // Get user info
+    const user = await userRepository.findById(apiToken.userId)
+    if (!user) {
       return null
     }
 
     // Update last used timestamp
-    await db
-      .update(apiTokens)
-      .set({ lastUsedAt: new Date() })
-      .where(eq(apiTokens.id, result.tokenId))
+    await apiTokenRepository.updateLastUsedByToken(token)
 
     return {
-      userId: result.userId,
-      userEmail: result.userEmail,
+      userId: apiToken.userId,
+      userEmail: user.email,
     }
   } catch (error) {
     console.error('Error validating API token:', error)
