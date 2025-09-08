@@ -134,14 +134,14 @@ export default function SettingsPage() {
         </div>
 
         <div className="card">
-          <h2 className="text-2xl font-bold text-primary mb-4">MCP Setup Instructions</h2>
+          <h2 className="text-2xl font-bold text-primary mb-4">Claude Desktop Integration</h2>
           <p className="text-gray-600 mb-4">
-            To use your API token with Claude Desktop MCP integration:
+            Integrate with Claude Desktop using the Model Context Protocol (MCP) to generate AI-powered flashcards.
           </p>
           <ol className="list-decimal list-inside space-y-2 text-gray-700">
             <li>Create an API token above</li>
-            <li>Install the MCP server by running: <code className="bg-gray-100 px-2 py-1 rounded">npm install -g @oblivian/mcp-server</code></li>
-            <li>Add this to your Claude Desktop MCP configuration (<code className="bg-gray-100 px-2 py-1 rounded">~/.config/claude-desktop/claude_desktop_config.json</code>):</li>
+            <li>Add this configuration to your Claude Desktop config file at: <br/>
+                <code className="bg-gray-100 px-2 py-1 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code></li>
           </ol>
           
           <div className="bg-gray-50 p-4 rounded-lg mt-4 mb-4">
@@ -149,11 +149,16 @@ export default function SettingsPage() {
 {`{
   "mcpServers": {
     "oblivian": {
-      "command": "node",
-      "args": ["path/to/oblivian-mcp-server.js"],
+      "command": "/opt/homebrew/bin/npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://localhost:3000/api/mcp",
+        "--header",
+        "Authorization: Bearer \${OBLIVIAN_TOKEN}"
+      ],
       "env": {
-        "OBLIVIAN_API_TOKEN": "your-api-token-here",
-        "OBLIVIAN_BASE_URL": "http://localhost:3000"
+        "OBLIVIAN_TOKEN": "YOUR_API_TOKEN"
       }
     }
   }
@@ -161,32 +166,21 @@ export default function SettingsPage() {
             </pre>
           </div>
 
-          <p className="text-gray-600 mb-4">
-            <strong>Available MCP Tools:</strong>
-          </p>
-          <div className="grid md:grid-cols-2 gap-4 mb-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-primary mb-2">Deck Management</h4>
-              <ul className="text-sm text-gray-700 space-y-1">
-                <li>• <code>list_decks</code> - View all your decks</li>
-                <li>• <code>create_deck</code> - Create new decks with level/language</li>
-                <li>• <code>delete_deck</code> - Remove decks completely</li>
+          <ol className="list-decimal list-inside space-y-2 text-gray-700" start={3}>
+            <li>Replace <code className="bg-gray-100 px-2 py-1 rounded">YOUR_API_TOKEN</code> with the token from above</li>
+            <li>Restart Claude Desktop</li>
+            <li>Start generating cards with natural language prompts like:
+              <ul className="list-disc list-inside ml-6 mt-2 space-y-1 text-sm">
+                <li>&quot;Create 20 flashcards about Python programming&quot;</li>
+                <li>&quot;Generate cards for learning Spanish vocabulary&quot;</li>
+                <li>&quot;Make a deck about World War II with explanations&quot;</li>
               </ul>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-primary mb-2">Card Management</h4>
-              <ul className="text-sm text-gray-700 space-y-1">
-                <li>• <code>list_cards</code> - View cards in a deck</li>
-                <li>• <code>create_cards_batch</code> - Create multiple cards at once</li>
-                <li>• <code>delete_card</code> - Remove individual cards</li>
-              </ul>
-            </div>
-          </div>
+            </li>
+          </ol>
 
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mt-6">
             <p className="text-sm text-blue-800">
-              <strong>💡 Pro tip:</strong> Use the <code>create_cards_batch</code> tool to generate multiple flashcards at once from any content. 
-              Claude can automatically create cards with different types (basic, cloze, multiple choice, explanation) based on your material.
+              <strong>💡 Pro tip:</strong> Once configured, Claude can automatically create multiple flashcards at once with different types (basic, cloze, multiple choice, explanation) based on your material.
             </p>
           </div>
         </div>

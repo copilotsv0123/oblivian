@@ -2,7 +2,7 @@ import { withApiHandler, getParams, ApiContext } from '@/lib/middleware/api-wrap
 import { deckRepository, cardRepository } from '@/lib/repositories'
 import { getDueCards } from '@/lib/fsrs/scheduler'
 import { inArray } from 'drizzle-orm'
-import { transformDbCardsToApiCards } from '@/lib/db/transformers'
+import { transformDbCardsToApiCards } from '@/lib/db/mappers'
 import { checkDailyLoadWarning } from '@/lib/study/scoring'
 
 export const GET = withApiHandler(async ({ user, request }: ApiContext, routeContext: any) => {

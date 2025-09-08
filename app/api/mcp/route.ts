@@ -111,6 +111,32 @@ const TOOLS = [
     },
   },
   {
+    name: 'update_deck',
+    description: 'Update a flashcard deck properties',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        deckId: { type: 'string', description: 'ID of the deck to update' },
+        title: { type: 'string', description: 'New title of the deck' },
+        description: { type: 'string', description: 'New description of the deck' },
+        level: {
+          type: 'string',
+          enum: ['simple', 'mid', 'expert'],
+          description: 'New difficulty level',
+        },
+        language: {
+          type: 'string',
+          description: 'New language of the deck (e.g., en, es, fr, de, it, pt, ru, zh, ja, ko)',
+        },
+        isPublic: {
+          type: 'boolean',
+          description: 'Whether the deck should be publicly visible',
+        },
+      },
+      required: ['deckId'],
+    },
+  },
+  {
     name: 'delete_deck',
     description: 'Delete a flashcard deck and all its cards',
     inputSchema: {
@@ -239,6 +265,38 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
                 content: [{
                   type: 'text',
                   text: JSON.stringify({ deleted: deleteResult.success, cardId: args.cardId }, null, 2),
+                }],
+              },
+            }
+
+          case 'update_deck':
+            // First check if user owns the deck
+            const deckToUpdate = await deckRepository.findByIdAndUserId(args.deckId, userId)
+            if (!deckToUpdate) {
+              throw new Error(`Deck with ID ${args.deckId} not found or access denied`)
+            }
+            
+            // Prepare update data
+            const updateData: any = {}
+            if (args.title !== undefined) updateData.title = args.title
+            if (args.description !== undefined) updateData.description = args.description
+            if (args.level !== undefined) updateData.level = args.level
+            if (args.language !== undefined) updateData.language = args.language
+            if (args.isPublic !== undefined) updateData.isPublic = args.isPublic
+            
+            const updatedDeck = await deckRepository.updateWithOwnershipCheck(args.deckId, userId, updateData)
+            
+            return {
+              jsonrpc: '2.0',
+              id: request.id,
+              result: {
+                content: [{
+                  type: 'text',
+                  text: JSON.stringify({ 
+                    updated: true, 
+                    deckId: args.deckId, 
+                    deck: updatedDeck 
+                  }, null, 2),
                 }],
               },
             }

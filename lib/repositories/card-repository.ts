@@ -3,7 +3,7 @@ import { cards, reviews, decks, type Card, type NewCard } from '@/lib/db/schema'
 import { eq, and, desc, inArray, lte, isNull } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 import { CreateCardInput, UpdateCardInput, Choice } from '@/lib/types/cards'
-import { transformDbCardToApiCard, transformDbCardsToApiCards } from '@/lib/db/transformers'
+import { transformDbCardToApiCard, transformDbCardsToApiCards } from '@/lib/db/mappers'
 import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base-repository'
 
 export class CardRepository extends BaseRepository {
