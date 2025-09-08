@@ -111,6 +111,36 @@ const TOOLS = [
     },
   },
   {
+    name: 'delete_cards_batch',
+    description: 'Delete multiple flashcards at once',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cardIds: { 
+          type: 'array', 
+          items: { type: 'string' },
+          description: 'Array of card IDs to delete' 
+        },
+      },
+      required: ['cardIds'],
+    },
+  },
+  {
+    name: 'update_card',
+    description: 'Update a flashcard content',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cardId: { type: 'string', description: 'ID of the card to update' },
+        front: { type: 'string', description: 'New front content' },
+        back: { type: 'string', description: 'New back content' },
+        choices: { type: 'string', description: 'New choices for multiple choice cards' },
+        explanation: { type: 'string', description: 'New explanation' },
+      },
+      required: ['cardId'],
+    },
+  },
+  {
     name: 'update_deck',
     description: 'Update a flashcard deck properties',
     inputSchema: {
@@ -190,7 +220,7 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
         
         switch (name) {
           case 'list_decks':
-            const userDecks = await deckRepository.findByUserId(userId)
+            const userDecks = await deckRepository.findByUserId(userId, true) // Include card counts
             
             return {
               jsonrpc: '2.0',
@@ -225,20 +255,29 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             }
 
           case 'create_cards_batch':
-            const batchCards = await cardRepository.createBatch(args.deckId, args.cards)
+            console.log('MCP create_cards_batch called with:', { deckId: args.deckId, userId, cardsCount: args.cards?.length })
+            console.log('Cards data:', JSON.stringify(args.cards, null, 2))
             
-            return {
-              jsonrpc: '2.0',
-              id: request.id,
-              result: {
-                content: [{
-                  type: 'text',
-                  text: JSON.stringify({ 
-                    created: batchCards.length,
-                    cards: batchCards,
-                  }, null, 2),
-                }],
-              },
+            try {
+              const batchResult = await cardRepository.createBatchWithOwnershipCheck(args.deckId, userId, args.cards)
+              console.log('Batch result:', { success: batchResult.success, count: batchResult.count })
+              
+              return {
+                jsonrpc: '2.0',
+                id: request.id,
+                result: {
+                  content: [{
+                    type: 'text',
+                    text: JSON.stringify({ 
+                      created: batchResult.count,
+                      cards: batchResult.cards,
+                    }, null, 2),
+                  }],
+                },
+              }
+            } catch (error) {
+              console.error('MCP create_cards_batch error:', error)
+              throw error
             }
 
           case 'list_cards':
@@ -265,6 +304,49 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
                 content: [{
                   type: 'text',
                   text: JSON.stringify({ deleted: deleteResult.success, cardId: args.cardId }, null, 2),
+                }],
+              },
+            }
+
+          case 'delete_cards_batch':
+            const batchDeleteResult = await cardRepository.deleteBatchWithOwnershipCheck(args.cardIds, userId)
+            
+            return {
+              jsonrpc: '2.0',
+              id: request.id,
+              result: {
+                content: [{
+                  type: 'text',
+                  text: JSON.stringify({ 
+                    deleted: batchDeleteResult.success,
+                    count: batchDeleteResult.deletedCount,
+                    deletedIds: batchDeleteResult.deletedIds,
+                    skippedIds: batchDeleteResult.skippedIds,
+                    message: batchDeleteResult.message,
+                  }, null, 2),
+                }],
+              },
+            }
+
+          case 'update_card':
+            const cardUpdateData: any = {}
+            if (args.front !== undefined) cardUpdateData.front = args.front
+            if (args.back !== undefined) cardUpdateData.back = args.back
+            if (args.choices !== undefined) cardUpdateData.choices = args.choices
+            if (args.explanation !== undefined) cardUpdateData.explanation = args.explanation
+            
+            const updatedCard = await cardRepository.updateWithOwnershipCheck(args.cardId, userId, cardUpdateData)
+            
+            return {
+              jsonrpc: '2.0',
+              id: request.id,
+              result: {
+                content: [{
+                  type: 'text',
+                  text: JSON.stringify({ 
+                    updated: true,
+                    card: updatedCard,
+                  }, null, 2),
                 }],
               },
             }

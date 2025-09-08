@@ -80,7 +80,7 @@ export default function DashboardPage() {
               onClick={() => setShowCreateModal(true)}
               className="btn-primary"
             >
-              Create Deck
+              + Deck
             </button>
           </div>
         </div>
@@ -172,7 +172,7 @@ export default function DashboardPage() {
                   onClick={() => setShowCreateModal(true)}
                   className="btn-secondary"
                 >
-                  Create Your First Deck
+                  + Deck
                 </button>
               </>
             ) : (

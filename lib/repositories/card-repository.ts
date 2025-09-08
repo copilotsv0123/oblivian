@@ -68,17 +68,16 @@ export class CardRepository extends BaseRepository {
   }
 
   async createBatch(deckId: string, cardInputs: Omit<CreateCardInput, 'deckId'>[]) {
-    const createdCards: Card[] = []
-    
     // Use a transaction for batch insert
-    await db.transaction(async (tx) => {
+    const createdCards = await db.transaction((tx) => {
+      const batchCreated: Card[] = []
       for (const input of cardInputs) {
         const cardId = randomUUID()
         const fullInput = { ...input, deckId }
         
         this.validateCard(fullInput)
         
-        const [newCard] = await tx.insert(cards).values({
+        const newCard = tx.insert(cards).values({
           id: cardId,
           deckId,
           type: fullInput.type,
@@ -86,10 +85,11 @@ export class CardRepository extends BaseRepository {
           back: fullInput.back || null,
           choices: fullInput.choices ? JSON.stringify(fullInput.choices) : null,
           explanation: fullInput.explanation || null,
-        }).returning()
+        }).returning().get()
         
-        createdCards.push(newCard)
+        batchCreated.push(newCard)
       }
+      return batchCreated
     })
     
     return transformDbCardsToApiCards(createdCards)
@@ -138,15 +138,16 @@ export class CardRepository extends BaseRepository {
         throw new Error(`Validation errors: ${JSON.stringify(validationErrors)}`)
       }
 
-      const createdCards: Card[] = []
+      let createdCards: Card[] = []
       
       // Use a transaction for batch insert
-      await db.transaction(async (tx) => {
+      createdCards = await db.transaction((tx) => {
+        const batchCreated: Card[] = []
         for (const input of cardInputs) {
           const cardId = randomUUID()
           const fullInput = { ...input, deckId }
           
-          const [newCard] = await tx.insert(cards).values({
+          const newCard = tx.insert(cards).values({
             id: cardId,
             deckId,
             type: fullInput.type,
@@ -154,10 +155,11 @@ export class CardRepository extends BaseRepository {
             back: fullInput.back || null,
             choices: fullInput.choices ? JSON.stringify(fullInput.choices) : null,
             explanation: fullInput.explanation || null,
-          }).returning()
+          }).returning().get()
           
-          createdCards.push(newCard)
+          batchCreated.push(newCard)
         }
+        return batchCreated
       })
       
       const transformedCards = transformDbCardsToApiCards(createdCards)
@@ -353,6 +355,68 @@ export class CardRepository extends BaseRepository {
       }
     } catch (error) {
       this.handleError(error, 'deleteWithOwnershipCheck')
+    }
+  }
+
+  async deleteBatchWithOwnershipCheck(cardIds: string[], userId: string) {
+    try {
+      this.validateRequiredFields({ userId }, ['userId'])
+      
+      if (!cardIds || !Array.isArray(cardIds) || cardIds.length === 0) {
+        throw new Error('bad request: cardIds array is required and cannot be empty')
+      }
+
+      if (cardIds.length > 100) {
+        throw new Error('bad request: Maximum 100 cards can be deleted at once')
+      }
+
+      // Check ownership for all cards
+      const existingCards = await db
+        .select({
+          cardId: cards.id,
+          deckId: cards.deckId,
+        })
+        .from(cards)
+        .innerJoin(decks, eq(cards.deckId, decks.id))
+        .where(and(
+          inArray(cards.id, cardIds),
+          eq(decks.ownerUserId, userId)
+        ))
+        .all()
+
+      const foundCardIds = existingCards.map(c => c.cardId)
+      const notFoundIds = cardIds.filter(id => !foundCardIds.includes(id))
+      
+      // Only proceed with cards that exist and are owned by the user
+      if (foundCardIds.length === 0) {
+        // No cards found to delete, return success with zero count
+        return {
+          success: true,
+          deletedCount: 0,
+          deletedIds: [],
+          skippedIds: cardIds,
+          message: 'No cards found to delete (already deleted or access denied)',
+        }
+      }
+
+      // Delete only the found cards in a transaction
+      await db.transaction((tx) => {
+        return tx.delete(cards).where(inArray(cards.id, foundCardIds))
+      })
+      
+      const deletedCount = foundCardIds.length
+
+      return {
+        success: true,
+        deletedCount,
+        deletedIds: foundCardIds,
+        skippedIds: notFoundIds.length > 0 ? notFoundIds : undefined,
+        message: notFoundIds.length > 0 
+          ? `Deleted ${foundCardIds.length} cards, skipped ${notFoundIds.length} (already deleted or not found)`
+          : undefined,
+      }
+    } catch (error) {
+      this.handleError(error, 'deleteBatchWithOwnershipCheck')
     }
   }
 
