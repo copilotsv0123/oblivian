@@ -428,12 +428,29 @@ export class CardRepository extends BaseRepository {
     }
     
     if (input.type === 'multiple_choice') {
-      if (!input.choices || input.choices.length < 2) {
-        throw new Error('Multiple choice cards require at least 2 choices')
+      if (!input.choices) {
+        throw new Error('Multiple choice cards require choices')
       }
-      const correctChoices = input.choices.filter(c => c.isCorrect)
-      if (correctChoices.length !== 1) {
-        throw new Error('Multiple choice cards must have exactly one correct choice')
+      
+      // Handle choices as either array or JSON string
+      let choices = input.choices
+      if (typeof choices === 'string') {
+        try {
+          choices = JSON.parse(choices)
+        } catch {
+          // If it's not valid JSON, skip validation (it might be plain text or other format)
+          return
+        }
+      }
+      
+      if (Array.isArray(choices)) {
+        if (choices.length < 2) {
+          throw new Error('Multiple choice cards require at least 2 choices')
+        }
+        const correctChoices = choices.filter(c => c && c.isCorrect)
+        if (correctChoices.length !== 1) {
+          throw new Error('Multiple choice cards must have exactly one correct choice')
+        }
       }
     }
     

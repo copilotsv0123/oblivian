@@ -150,10 +150,26 @@ export class StudySessionRepository extends BaseRepository {
     try {
       this.validateRequiredFields(input, ['userId', 'deckId'])
       
-      // Check if there's already an active session for this user
-      const activeSession = await this.findActiveSession(input.userId)
+      // Check if there's already an active session for this specific deck
+      const activeSession = await db
+        .select()
+        .from(studySessions)
+        .where(
+          and(
+            eq(studySessions.userId, input.userId),
+            eq(studySessions.deckId, input.deckId),
+            isNull(studySessions.endedAt)
+          )
+        )
+        .get()
+      
       if (activeSession) {
-        throw new Error('User already has an active study session')
+        // Return the existing session for this deck
+        return {
+          success: true,
+          data: activeSession,
+          id: activeSession.id,
+        }
       }
       
       const [newSession] = await db
