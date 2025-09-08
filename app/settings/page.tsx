@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import AppLayout from '@/components/AppLayout'
 
 interface ApiToken {
   id: string
@@ -14,7 +13,6 @@ interface ApiToken {
 }
 
 export default function SettingsPage() {
-  const router = useRouter()
   const [tokens, setTokens] = useState<ApiToken[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -24,10 +22,6 @@ export default function SettingsPage() {
     try {
       const res = await fetch('/api/tokens')
       if (!res.ok) {
-        if (res.status === 401) {
-          router.push('/login')
-          return
-        }
         throw new Error('Failed to fetch tokens')
       }
       const data = await res.json()
@@ -37,7 +31,7 @@ export default function SettingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [router])
+  }, [])
 
   useEffect(() => {
     fetchTokens()
@@ -66,20 +60,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-accent">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/dashboard" className="text-primary hover:underline">
-              ← Back to Dashboard
-            </Link>
-            <h1 className="text-xl font-bold text-primary">Settings</h1>
-            <div className="w-24" />
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <AppLayout>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="card mb-8">
           <h2 className="text-2xl font-bold text-primary mb-4">API Tokens</h2>
           <p className="text-gray-600 mb-6">
@@ -208,19 +190,19 @@ export default function SettingsPage() {
             </p>
           </div>
         </div>
-      </main>
 
-      {showCreateModal && (
-        <CreateTokenModal
-          onClose={() => setShowCreateModal(false)}
-          onCreated={(token) => {
-            setShowCreateModal(false)
-            setNewTokenValue(token)
-            fetchTokens()
-          }}
-        />
-      )}
-    </div>
+        {showCreateModal && (
+          <CreateTokenModal
+            onClose={() => setShowCreateModal(false)}
+            onCreated={(token) => {
+              setShowCreateModal(false)
+              setNewTokenValue(token)
+              fetchTokens()
+            }}
+          />
+        )}
+      </div>
+    </AppLayout>
   )
 }
 

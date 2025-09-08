@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import AppLayout from '@/components/AppLayout'
 
 interface Deck {
   id: string
@@ -17,7 +17,6 @@ interface Deck {
 }
 
 export default function DashboardPage() {
-  const router = useRouter()
   const [decks, setDecks] = useState<Deck[]>([])
   const [allDecks, setAllDecks] = useState<Deck[]>([])
   const [loading, setLoading] = useState(true)
@@ -29,10 +28,6 @@ export default function DashboardPage() {
     try {
       const res = await fetch('/api/decks')
       if (!res.ok) {
-        if (res.status === 401) {
-          router.push('/login')
-          return
-        }
         throw new Error('Failed to fetch decks')
       }
       const data = await res.json()
@@ -43,7 +38,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [router])
+  }, [])
 
   useEffect(() => {
     fetchDecks()
@@ -69,36 +64,9 @@ export default function DashboardPage() {
     new Set(allDecks.map(deck => deck.language))
   ).sort()
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/')
-  }
-
   return (
-    <div className="min-h-screen bg-accent">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <h1 className="text-2xl font-serif text-primary">Oblivian</h1>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/settings"
-                className="text-gray-600 hover:text-primary transition-colors"
-              >
-                Settings
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="text-gray-600 hover:text-primary transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <AppLayout>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold text-primary">My Decks</h2>
           <div className="flex gap-3">
@@ -265,18 +233,18 @@ export default function DashboardPage() {
             ))}
           </div>
         )}
-      </main>
 
-      {showCreateModal && (
-        <CreateDeckModal
-          onClose={() => setShowCreateModal(false)}
-          onCreated={() => {
-            setShowCreateModal(false)
-            fetchDecks()
-          }}
-        />
-      )}
-    </div>
+        {showCreateModal && (
+          <CreateDeckModal
+            onClose={() => setShowCreateModal(false)}
+            onCreated={() => {
+              setShowCreateModal(false)
+              fetchDecks()
+            }}
+          />
+        )}
+      </div>
+    </AppLayout>
   )
 }
 

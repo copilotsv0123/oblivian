@@ -1,15 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { verifyPassword } from '@/lib/auth/password'
 import { createToken, setAuthCookie } from '@/lib/auth/jwt'
-import { withApiHandler } from '@/lib/middleware/api-handler'
-import { ValidationError, UnauthorizedError } from '@/lib/errors/api-error'
+import { withApiHandler, getJsonBody, ApiContextOptionalAuth } from '@/lib/middleware/api-wrapper'
 import { userRepository } from '@/lib/repositories'
 
-export const POST = withApiHandler(async (request: NextRequest) => {
-  const { email, password } = await request.json()
+export const POST = withApiHandler(async ({ request }: ApiContextOptionalAuth) => {
+  const { email, password } = await getJsonBody(request)
 
   if (!email || !password) {
-    throw new ValidationError('Email and password are required')
+    throw new Error('bad request: Email and password are required')
   }
 
   const user = await userRepository.findByEmail(email)
@@ -20,16 +19,17 @@ export const POST = withApiHandler(async (request: NextRequest) => {
   const isValidPassword = await verifyPassword(password, passwordToCheck)
 
   if (!user || !isValidPassword) {
-    throw new UnauthorizedError('Invalid credentials')
+    throw new Error('unauthorized: Invalid credentials')
   }
 
   const token = await createToken(user)
-  await setAuthCookie(token)
-
-  return NextResponse.json({
+  const response = NextResponse.json({
     user: {
       id: user.id,
       email: user.email,
     },
   })
-})
+  
+  await setAuthCookie(token)
+  return response
+}, { requireAuth: false })

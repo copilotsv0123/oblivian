@@ -1,117 +1,71 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { withApiHandler, getJsonBody, ApiContext } from '@/lib/middleware/api-wrapper'
 import { db, decks, cards } from '@/lib/db'
-import { authenticateRequest } from '@/lib/auth/middleware'
 import { eq, and } from 'drizzle-orm'
 import { deckRepository } from '@/lib/repositories/deck-repository'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const user = await authenticateRequest(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+export const GET = withApiHandler(async ({ user }: ApiContext, routeContext: any) => {
+  const { params } = routeContext as { params: Promise<{ id: string }> }
+  const { id } = await params
+  const deck = await db
+    .select()
+    .from(decks)
+    .where(and(eq(decks.id, id), eq(decks.ownerUserId, user.id)))
+    .get()
 
-    const { id } = await params
-    const deck = await db
-      .select()
-      .from(decks)
-      .where(and(eq(decks.id, id), eq(decks.ownerUserId, user.id)))
-      .get()
-
-    if (!deck) {
-      return NextResponse.json({ error: 'Deck not found' }, { status: 404 })
-    }
-
-    const deckCards = await db
-      .select()
-      .from(cards)
-      .where(eq(cards.deckId, id))
-      .all()
-
-    return NextResponse.json({ deck, cards: deckCards })
-  } catch (error) {
-    console.error('Error fetching deck:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch deck' },
-      { status: 500 }
-    )
+  if (!deck) {
+    throw new Error('not found: Deck not found')
   }
-}
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const user = await authenticateRequest(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  const deckCards = await db
+    .select()
+    .from(cards)
+    .where(eq(cards.deckId, id))
+    .all()
 
-    const { id } = await params
-    const { title, description, level, language, isPublic } = await request.json()
+  return { deck, cards: deckCards }
+})
 
-    const existingDeck = await db
-      .select()
-      .from(decks)
-      .where(and(eq(decks.id, id), eq(decks.ownerUserId, user.id)))
-      .get()
+export const PUT = withApiHandler(async ({ user, request }: ApiContext, routeContext: any) => {
+  const { params } = routeContext as { params: Promise<{ id: string }> }
+  const { id } = await params
+  const { title, description, level, language, isPublic } = await getJsonBody(request)
 
-    if (!existingDeck) {
-      return NextResponse.json({ error: 'Deck not found' }, { status: 404 })
-    }
+  const existingDeck = await db
+    .select()
+    .from(decks)
+    .where(and(eq(decks.id, id), eq(decks.ownerUserId, user.id)))
+    .get()
 
-    const [updatedDeck] = await db
-      .update(decks)
-      .set({
-        title,
-        description,
-        level,
-        language,
-        isPublic,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(decks.id, id), eq(decks.ownerUserId, user.id)))
-      .returning()
-
-    return NextResponse.json({ deck: updatedDeck })
-  } catch (error) {
-    console.error('Error updating deck:', error)
-    return NextResponse.json(
-      { error: 'Failed to update deck' },
-      { status: 500 }
-    )
+  if (!existingDeck) {
+    throw new Error('not found: Deck not found')
   }
-}
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const user = await authenticateRequest(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  const [updatedDeck] = await db
+    .update(decks)
+    .set({
+      title,
+      description,
+      level,
+      language,
+      isPublic,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(decks.id, id), eq(decks.ownerUserId, user.id)))
+    .returning()
 
-    const { id } = await params
-    const existingDeck = await deckRepository.findByIdAndUserId(id, user.id)
+  return { deck: updatedDeck }
+})
 
-    if (!existingDeck) {
-      return NextResponse.json({ error: 'Deck not found' }, { status: 404 })
-    }
+export const DELETE = withApiHandler(async ({ user }: ApiContext, routeContext: any) => {
+  const { params } = routeContext as { params: Promise<{ id: string }> }
+  const { id } = await params
+  const existingDeck = await deckRepository.findByIdAndUserId(id, user.id)
 
-    await deckRepository.delete(id)
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Error deleting deck:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete deck' },
-      { status: 500 }
-    )
+  if (!existingDeck) {
+    throw new Error('not found: Deck not found')
   }
-}
+
+  await deckRepository.delete(id)
+
+  return { success: true }
+})

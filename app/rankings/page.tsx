@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import AppLayout from '@/components/AppLayout'
 
 interface RankedDeck {
   id: string
@@ -51,27 +52,18 @@ export default function RankingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-accent">
-      <nav className="bg-white shadow-sm border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/dashboard" className="text-primary hover:underline">
-              ← Back to Dashboard
-            </Link>
-            <h1 className="text-xl font-bold text-primary">Popular Decks</h1>
+    <AppLayout>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <div className="flex justify-between items-start mb-4">
+            <h1 className="text-3xl font-bold text-primary">Top Ranked Decks</h1>
             <button
               onClick={triggerUpdate}
-              className="text-sm text-gray-600 hover:text-gray-800"
+              className="btn-outline text-sm"
             >
               Update Rankings
             </button>
           </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-4">Top Ranked Decks</h1>
           <p className="text-gray-600 mb-6">
             Discover the most popular decks based on community usage
           </p>
@@ -168,7 +160,7 @@ export default function RankingsPage() {
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   )
 }

@@ -1,57 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { authenticateRequest } from '@/lib/auth/middleware'
+import { withApiHandler, getJsonBody, ApiContext } from '@/lib/middleware/api-wrapper'
 import { deckRepository } from '@/lib/repositories'
 
-export async function GET(request: NextRequest) {
-  try {
-    const user = await authenticateRequest(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+export const GET = withApiHandler(async ({ user }: ApiContext) => {
+  const userDecks = await deckRepository.findByUserId(user.id, true)
+  return { decks: userDecks }
+})
 
-    const userDecks = await deckRepository.findByUserId(user.id, true)
+export const POST = withApiHandler(async ({ user, request }: ApiContext) => {
+  const { title, description, level, language, isPublic } = await getJsonBody(request)
 
-    return NextResponse.json({ decks: userDecks })
-  } catch (error) {
-    console.error('Error fetching decks:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch decks' },
-      { status: 500 }
-    )
+  if (!title) {
+    throw new Error('bad request: Title is required')
   }
-}
 
-export async function POST(request: NextRequest) {
-  try {
-    const user = await authenticateRequest(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  const result = await deckRepository.create({
+    userId: user.id,
+    title,
+    description,
+    level,
+    language,
+    isPublic,
+  })
 
-    const { title, description, level, language, isPublic } = await request.json()
-
-    if (!title) {
-      return NextResponse.json(
-        { error: 'Title is required' },
-        { status: 400 }
-      )
-    }
-
-    const result = await deckRepository.create({
-      userId: user.id,
-      title,
-      description,
-      level,
-      language,
-      isPublic,
-    })
-
-    return NextResponse.json({ deck: result.data })
-  } catch (error) {
-    console.error('Error creating deck:', error)
-    return NextResponse.json(
-      { error: 'Failed to create deck' },
-      { status: 500 }
-    )
-  }
-}
+  return { deck: result.data }
+})

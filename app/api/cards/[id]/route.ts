@@ -1,129 +1,83 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { withApiHandler, getJsonBody, ApiContext } from '@/lib/middleware/api-wrapper'
 import { db, cards, decks } from '@/lib/db'
-import { authenticateRequest } from '@/lib/auth/middleware'
 import { eq, and } from 'drizzle-orm'
 import { transformDbCardToApiCard } from '@/lib/db/transformers'
 import { cardRepository } from '@/lib/repositories/card-repository'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const user = await authenticateRequest(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+export const GET = withApiHandler(async ({ user }: ApiContext, routeContext: any) => {
+  const { params } = routeContext as { params: Promise<{ id: string }> }
+  const { id } = await params
+  const card = await db
+    .select({
+      card: cards,
+      deck: decks,
+    })
+    .from(cards)
+    .innerJoin(decks, eq(cards.deckId, decks.id))
+    .where(and(eq(cards.id, id), eq(decks.ownerUserId, user.id)))
+    .get()
 
-    const { id } = await params
-    const card = await db
-      .select({
-        card: cards,
-        deck: decks,
-      })
-      .from(cards)
-      .innerJoin(decks, eq(cards.deckId, decks.id))
-      .where(and(eq(cards.id, id), eq(decks.ownerUserId, user.id)))
-      .get()
-
-    if (!card) {
-      return NextResponse.json({ error: 'Card not found' }, { status: 404 })
-    }
-
-    const transformedCard = transformDbCardToApiCard(card.card)
-    return NextResponse.json({ card: transformedCard, deck: card.deck })
-  } catch (error) {
-    console.error('Error fetching card:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch card' },
-      { status: 500 }
-    )
+  if (!card) {
+    throw new Error('not found: Card not found')
   }
-}
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const user = await authenticateRequest(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  const transformedCard = transformDbCardToApiCard(card.card)
+  return { card: transformedCard, deck: card.deck }
+})
 
-    const { id } = await params
-    const { front, back, choices, explanation } = await request.json()
+export const PUT = withApiHandler(async ({ user, request }: ApiContext, routeContext: any) => {
+  const { params } = routeContext as { params: Promise<{ id: string }> }
+  const { id } = await params
+  const { front, back, choices, explanation } = await getJsonBody(request)
 
-    const existingCard = await db
-      .select({
-        card: cards,
-        deck: decks,
-      })
-      .from(cards)
-      .innerJoin(decks, eq(cards.deckId, decks.id))
-      .where(and(eq(cards.id, id), eq(decks.ownerUserId, user.id)))
-      .get()
+  const existingCard = await db
+    .select({
+      card: cards,
+      deck: decks,
+    })
+    .from(cards)
+    .innerJoin(decks, eq(cards.deckId, decks.id))
+    .where(and(eq(cards.id, id), eq(decks.ownerUserId, user.id)))
+    .get()
 
-    if (!existingCard) {
-      return NextResponse.json({ error: 'Card not found' }, { status: 404 })
-    }
-
-    const [updatedCard] = await db
-      .update(cards)
-      .set({
-        front,
-        back,
-        choices: choices ? JSON.stringify(choices) : undefined,
-        explanation,
-        updatedAt: new Date(),
-      })
-      .where(eq(cards.id, id))
-      .returning()
-
-    const transformedCard = transformDbCardToApiCard(updatedCard)
-    return NextResponse.json({ card: transformedCard })
-  } catch (error) {
-    console.error('Error updating card:', error)
-    return NextResponse.json(
-      { error: 'Failed to update card' },
-      { status: 500 }
-    )
+  if (!existingCard) {
+    throw new Error('not found: Card not found')
   }
-}
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const user = await authenticateRequest(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  const [updatedCard] = await db
+    .update(cards)
+    .set({
+      front,
+      back,
+      choices: choices ? JSON.stringify(choices) : undefined,
+      explanation,
+      updatedAt: new Date(),
+    })
+    .where(eq(cards.id, id))
+    .returning()
 
-    const { id } = await params
-    const existingCard = await db
-      .select({
-        card: cards,
-        deck: decks,
-      })
-      .from(cards)
-      .innerJoin(decks, eq(cards.deckId, decks.id))
-      .where(and(eq(cards.id, id), eq(decks.ownerUserId, user.id)))
-      .get()
+  const transformedCard = transformDbCardToApiCard(updatedCard)
+  return { card: transformedCard }
+})
 
-    if (!existingCard) {
-      return NextResponse.json({ error: 'Card not found' }, { status: 404 })
-    }
+export const DELETE = withApiHandler(async ({ user }: ApiContext, routeContext: any) => {
+  const { params } = routeContext as { params: Promise<{ id: string }> }
+  const { id } = await params
+  const existingCard = await db
+    .select({
+      card: cards,
+      deck: decks,
+    })
+    .from(cards)
+    .innerJoin(decks, eq(cards.deckId, decks.id))
+    .where(and(eq(cards.id, id), eq(decks.ownerUserId, user.id)))
+    .get()
 
-    await cardRepository.delete(id)
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Error deleting card:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete card' },
-      { status: 500 }
-    )
+  if (!existingCard) {
+    throw new Error('not found: Card not found')
   }
-}
+
+  await cardRepository.delete(id)
+
+  return { success: true }
+})
