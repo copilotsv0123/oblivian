@@ -4,6 +4,7 @@ import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
+import { MoreVertical, Trash2, Edit } from 'lucide-react'
 
 interface Card {
   id: string
@@ -29,6 +30,10 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
   const [loading, setLoading] = useState(true)
   const [showAddCard, setShowAddCard] = useState(false)
   const [similarDecks, setSimilarDecks] = useState<any[]>([])
+  const [showDeckMenu, setShowDeckMenu] = useState(false)
+  const [showCardMenu, setShowCardMenu] = useState<string | null>(null)
+  const [editingCard, setEditingCard] = useState<string | null>(null)
+  const [editValues, setEditValues] = useState<{ front: string; back: string }>({ front: '', back: '' })
 
   const fetchDeck = useCallback(async () => {
     try {
@@ -67,8 +72,75 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
     fetchSimilarDecks()
   }, [fetchDeck, fetchSimilarDecks])
 
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowDeckMenu(false)
+      setShowCardMenu(null)
+    }
+
+    if (showDeckMenu || showCardMenu) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showDeckMenu, showCardMenu])
+
   const startStudySession = () => {
     router.push(`/study/${resolvedParams.id}`)
+  }
+
+  const handleDeleteDeck = async () => {
+    if (!confirm('Are you sure you want to delete this deck? This action cannot be undone.')) {
+      return
+    }
+    
+    try {
+      const res = await fetch(`/api/decks/${resolvedParams.id}`, {
+        method: 'DELETE',
+      })
+      
+      if (res.ok) {
+        router.push('/dashboard')
+      }
+    } catch (error) {
+      console.error('Error deleting deck:', error)
+    }
+  }
+
+  const handleDeleteCard = async (cardId: string) => {
+    if (!confirm('Are you sure you want to delete this card?')) {
+      return
+    }
+    
+    try {
+      const res = await fetch(`/api/cards/${cardId}`, {
+        method: 'DELETE',
+      })
+      
+      if (res.ok) {
+        setCards(cards.filter(c => c.id !== cardId))
+        setShowCardMenu(null)
+      }
+    } catch (error) {
+      console.error('Error deleting card:', error)
+    }
+  }
+
+  const handleUpdateCard = async (cardId: string) => {
+    try {
+      const res = await fetch(`/api/cards/${cardId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editValues),
+      })
+      
+      if (res.ok) {
+        fetchDeck()
+        setEditingCard(null)
+      }
+    } catch (error) {
+      console.error('Error updating card:', error)
+    }
   }
 
   if (loading) {
@@ -94,18 +166,44 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
   return (
     <AppLayout>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="card mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">{deck.title}</h1>
-          {deck.description && (
-            <p className="text-gray-600 mb-4">{deck.description}</p>
-          )}
-          <div className="flex gap-4">
-            <span className="px-3 py-1 bg-primary/10 text-primary rounded">
-              {deck.level}
-            </span>
-            <span className="text-gray-600">
-              {cards.length} card{cards.length !== 1 ? 's' : ''}
-            </span>
+        <div className="card mb-8 relative">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-primary mb-2">{deck.title}</h1>
+              {deck.description && (
+                <p className="text-gray-600 mb-4">{deck.description}</p>
+              )}
+              <div className="flex gap-4">
+                <span className="px-3 py-1 bg-primary/10 text-primary rounded">
+                  {deck.level}
+                </span>
+                <span className="text-gray-600">
+                  {cards.length} card{cards.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowDeckMenu(!showDeckMenu)
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <MoreVertical className="w-5 h-5 text-gray-500" />
+              </button>
+              {showDeckMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
+                  <button
+                    onClick={handleDeleteDeck}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-red-600"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Deck
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -147,12 +245,93 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
               <div key={card.id} className="card">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <span className="text-sm text-gray-500 uppercase">
-                      {card.type.replace('_', ' ')}
-                    </span>
-                    <p className="text-primary font-medium mt-1">{card.front}</p>
-                    {card.back && (
-                      <p className="text-gray-600 mt-2">Answer: {card.back}</p>
+                    {editingCard === card.id ? (
+                      <div className="space-y-3">
+                        <input
+                          type="text"
+                          value={editValues.front}
+                          onChange={(e) => setEditValues({ ...editValues, front: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-lg"
+                          placeholder="Question"
+                        />
+                        <input
+                          type="text"
+                          value={editValues.back}
+                          onChange={(e) => setEditValues({ ...editValues, back: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-lg"
+                          placeholder="Answer"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleUpdateCard(card.id)}
+                            className="btn-primary text-sm"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingCard(null)}
+                            className="btn-outline text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p 
+                          className="text-primary font-medium mt-1 cursor-pointer hover:text-primary/80"
+                          onClick={() => {
+                            setEditingCard(card.id)
+                            setEditValues({ front: card.front, back: card.back || '' })
+                          }}
+                        >
+                          {card.front}
+                        </p>
+                        {card.back && (
+                          <p 
+                            className="text-gray-600 mt-2 cursor-pointer hover:text-gray-500"
+                            onClick={() => {
+                              setEditingCard(card.id)
+                              setEditValues({ front: card.front, back: card.back || '' })
+                            }}
+                          >
+                            {card.back}
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setShowCardMenu(showCardMenu === card.id ? null : card.id)
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <MoreVertical className="w-5 h-5 text-gray-500" />
+                    </button>
+                    {showCardMenu === card.id && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
+                        <button
+                          onClick={() => {
+                            setEditingCard(card.id)
+                            setEditValues({ front: card.front, back: card.back || '' })
+                            setShowCardMenu(null)
+                          }}
+                          className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Edit Card
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCard(card.id)}
+                          className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete Card
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
