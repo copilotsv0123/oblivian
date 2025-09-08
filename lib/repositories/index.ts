@@ -45,5 +45,12 @@ export type {
   UpsertDeckScoreInput 
 } from './deck-score-repository'
 
+// Ranking Repository
+export { RankingRepository, rankingRepository } from './ranking-repository'
+export type {
+  RankingStats,
+  RankingData
+} from './ranking-repository'
+
 // Individual repository exports are available above
 // Import specific repositories as needed in your code
