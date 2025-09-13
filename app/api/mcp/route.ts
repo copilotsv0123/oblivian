@@ -80,6 +80,7 @@ const TOOLS = [
               back: { type: 'string' },
               choices: { type: 'string' },
               explanation: { type: 'string' },
+              advancedNotes: { type: 'string', description: 'Advanced notes with deeper insights' },
             },
             required: ['type', 'front'],
           },
@@ -136,6 +137,7 @@ const TOOLS = [
         back: { type: 'string', description: 'New back content' },
         choices: { type: 'string', description: 'New choices for multiple choice cards' },
         explanation: { type: 'string', description: 'New explanation' },
+        advancedNotes: { type: 'string', description: 'Advanced notes with deeper insights' },
       },
       required: ['cardId'],
     },
@@ -334,7 +336,8 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             if (args.back !== undefined) cardUpdateData.back = args.back
             if (args.choices !== undefined) cardUpdateData.choices = args.choices
             if (args.explanation !== undefined) cardUpdateData.explanation = args.explanation
-            
+            if (args.advancedNotes !== undefined) cardUpdateData.advancedNotes = args.advancedNotes
+
             const updatedCard = await cardRepository.updateWithOwnershipCheck(args.cardId, userId, cardUpdateData)
             
             return {

@@ -13,6 +13,7 @@ interface Card {
   back?: string
   choices?: string
   explanation?: string
+  advancedNotes?: string
 }
 
 interface Deck {
@@ -33,7 +34,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
   const [showDeckMenu, setShowDeckMenu] = useState(false)
   const [showCardMenu, setShowCardMenu] = useState<string | null>(null)
   const [editingCard, setEditingCard] = useState<string | null>(null)
-  const [editValues, setEditValues] = useState<{ front: string; back: string }>({ front: '', back: '' })
+  const [editValues, setEditValues] = useState<{ front: string; back: string; advancedNotes?: string }>({ front: '', back: '' })
 
   const fetchDeck = useCallback(async () => {
     try {
@@ -261,6 +262,12 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                           className="w-full px-3 py-2 border rounded-lg"
                           placeholder="Answer"
                         />
+                        <textarea
+                          value={editValues.advancedNotes || ''}
+                          onChange={(e) => setEditValues({ ...editValues, advancedNotes: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-lg resize-vertical min-h-[80px]"
+                          placeholder="Advanced Notes (optional): Add deeper insights, related concepts, or additional examples"
+                        />
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleUpdateCard(card.id)}
@@ -282,7 +289,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                           className="text-primary font-medium mt-1 cursor-pointer hover:text-primary/80"
                           onClick={() => {
                             setEditingCard(card.id)
-                            setEditValues({ front: card.front, back: card.back || '' })
+                            setEditValues({ front: card.front, back: card.back || '', advancedNotes: card.advancedNotes || '' })
                           }}
                         >
                           {card.front}
@@ -316,7 +323,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                         <button
                           onClick={() => {
                             setEditingCard(card.id)
-                            setEditValues({ front: card.front, back: card.back || '' })
+                            setEditValues({ front: card.front, back: card.back || '', advancedNotes: card.advancedNotes || '' })
                             setShowCardMenu(null)
                           }}
                           className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50"

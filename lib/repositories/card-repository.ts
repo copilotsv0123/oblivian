@@ -54,6 +54,7 @@ export class CardRepository extends BaseRepository {
         back: input.back || null,
         choices: input.choices ? JSON.stringify(input.choices) : null,
         explanation: input.explanation || null,
+        advancedNotes: input.advancedNotes || null,
       }).returning()
       
       const transformedCard = transformDbCardToApiCard(newCard)
@@ -85,6 +86,7 @@ export class CardRepository extends BaseRepository {
           back: fullInput.back || null,
           choices: fullInput.choices ? JSON.stringify(fullInput.choices) : null,
           explanation: fullInput.explanation || null,
+          advancedNotes: fullInput.advancedNotes || null,
         }).returning().get()
         
         batchCreated.push(newCard)
@@ -155,6 +157,7 @@ export class CardRepository extends BaseRepository {
             back: fullInput.back || null,
             choices: fullInput.choices ? JSON.stringify(fullInput.choices) : null,
             explanation: fullInput.explanation || null,
+            advancedNotes: fullInput.advancedNotes || null,
           }).returning().get()
           
           batchCreated.push(newCard)
@@ -176,12 +179,13 @@ export class CardRepository extends BaseRepository {
 
   async update(cardId: string, input: UpdateCardInput) {
     const updateData: any = {}
-    
+
     if (input.type !== undefined) updateData.type = input.type
     if (input.front !== undefined) updateData.front = input.front
     if (input.back !== undefined) updateData.back = input.back
     if (input.choices !== undefined) updateData.choices = JSON.stringify(input.choices)
     if (input.explanation !== undefined) updateData.explanation = input.explanation
+    if (input.advancedNotes !== undefined) updateData.advancedNotes = input.advancedNotes
     
     if (Object.keys(updateData).length === 0) {
       return null
@@ -289,7 +293,7 @@ export class CardRepository extends BaseRepository {
     }
   }
 
-  async updateWithOwnershipCheck(cardId: string, userId: string, updateData: { front?: string, back?: string, choices?: any, explanation?: string }) {
+  async updateWithOwnershipCheck(cardId: string, userId: string, updateData: { front?: string, back?: string, choices?: any, explanation?: string, advancedNotes?: string }) {
     try {
       this.validateRequiredFields({ cardId, userId }, ['cardId', 'userId'])
       
@@ -316,6 +320,7 @@ export class CardRepository extends BaseRepository {
           back: updateData.back,
           choices: updateData.choices ? JSON.stringify(updateData.choices) : undefined,
           explanation: updateData.explanation,
+          advancedNotes: updateData.advancedNotes,
           updatedAt: new Date(),
         })
         .where(eq(cards.id, cardId))

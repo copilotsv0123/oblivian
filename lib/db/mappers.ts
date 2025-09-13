@@ -6,6 +6,7 @@ export function transformDbCardToApiCard(dbCard: DbCard): Card {
     id: dbCard.id,
     deckId: dbCard.deckId,
     front: dbCard.front,
+    advancedNotes: dbCard.advancedNotes || undefined,
     createdAt: dbCard.createdAt || new Date(),
     updatedAt: dbCard.updatedAt || new Date(),
   }

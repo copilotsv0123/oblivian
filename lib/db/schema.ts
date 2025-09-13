@@ -46,6 +46,7 @@ export const cards = sqliteTable('cards', {
   back: text('back'),
   choices: text('choices', { mode: 'json' }),
   explanation: text('explanation'),
+  advancedNotes: text('advanced_notes'),
   createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 })

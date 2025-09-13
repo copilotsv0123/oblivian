@@ -17,13 +17,14 @@ export const GET = withApiHandler(async ({ user }: ApiContext, routeContext: any
 export const PUT = withApiHandler(async ({ user, request }: ApiContext, routeContext: any) => {
   const { params } = routeContext as { params: Promise<{ id: string }> }
   const { id } = await params
-  const { front, back, choices, explanation } = await getJsonBody(request)
+  const { front, back, choices, explanation, advancedNotes } = await getJsonBody(request)
 
   const updatedCard = await cardRepository.updateWithOwnershipCheck(id, user.id, {
     front,
     back,
     choices,
-    explanation
+    explanation,
+    advancedNotes
   })
 
   return { card: updatedCard }

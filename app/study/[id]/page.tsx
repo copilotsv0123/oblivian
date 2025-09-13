@@ -12,6 +12,7 @@ interface Card {
   back?: string
   choices?: string
   explanation?: string
+  advancedNotes?: string
 }
 
 interface StudyStats {
@@ -26,6 +27,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   const [cards, setCards] = useState<Card[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
+  const [showAdvancedNotes, setShowAdvancedNotes] = useState(false)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<StudyStats>({ due: 0, new: 0, total: 0 })
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -107,6 +109,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
       if (currentIndex < cards.length - 1) {
         setCurrentIndex(currentIndex + 1)
         setShowAnswer(false)
+        setShowAdvancedNotes(false)
         setCardStartTime(Date.now())
       } else {
         // End session
@@ -243,6 +246,34 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
                     </ReactMarkdown>
                   </div>
                 </div>
+
+                {currentCard.advancedNotes && (
+                  <div className="border border-indigo-200 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setShowAdvancedNotes(!showAdvancedNotes)}
+                      className="w-full px-4 py-3 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center justify-between text-left"
+                    >
+                      <span className="font-medium text-indigo-700">Advanced Notes</span>
+                      <svg
+                        className={`w-5 h-5 text-indigo-600 transform transition-transform ${showAdvancedNotes ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {showAdvancedNotes && (
+                      <div className="p-4 bg-indigo-50 border-t border-indigo-200">
+                        <div className="prose prose-lg max-w-none text-gray-700">
+                          <ReactMarkdown>
+                            {currentCard.advancedNotes}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   <div className="flex gap-3 justify-center">

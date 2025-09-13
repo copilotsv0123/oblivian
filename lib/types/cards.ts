@@ -10,6 +10,7 @@ export interface BaseCard {
   deckId: string
   type: CardType
   front: string
+  advancedNotes?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -51,6 +52,7 @@ export interface CreateCardInput {
   back?: string
   choices?: Choice[]
   explanation?: string
+  advancedNotes?: string
 }
 
 export interface UpdateCardInput {
@@ -59,4 +61,5 @@ export interface UpdateCardInput {
   back?: string
   choices?: Choice[]
   explanation?: string
+  advancedNotes?: string
 }
