@@ -264,22 +264,16 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <h2 className="text-xl font-semibold text-primary">Cards ({cards.length})</h2>
               <button
                 onClick={() => setShowCards(!showCards)}
-                className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors"
+                className="text-gray-600 hover:text-primary transition-colors"
               >
                 {showCards ? (
-                  <>
-                    <ChevronUp className="w-5 h-5" />
-                    Hide
-                  </>
+                  <ChevronUp className="w-5 h-5" />
                 ) : (
-                  <>
-                    <ChevronDown className="w-5 h-5" />
-                    Show
-                  </>
+                  <ChevronDown className="w-5 h-5" />
                 )}
               </button>
             </div>
