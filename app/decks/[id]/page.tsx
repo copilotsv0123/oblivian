@@ -277,7 +277,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                 )}
               </button>
             </div>
-            {showCards && (
+            {showCards ? (
               <div className="grid gap-[1px] md:grid-cols-2 lg:grid-cols-3">
               {cards.map((card, index) => {
                 const perf = cardPerformance[card.id]
@@ -347,6 +347,20 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
               </div>
                 )
               })}
+            </div>
+          ) : (
+            <div className="relative h-32 overflow-hidden rounded-lg">
+              <div className="grid gap-[1px] md:grid-cols-2 lg:grid-cols-3">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="card opacity-60">
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-3 bg-gray-100 rounded animate-pulse w-3/4"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none"></div>
             </div>
           )}
         </div>
