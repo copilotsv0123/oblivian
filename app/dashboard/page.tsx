@@ -85,20 +85,12 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-          <div className="flex gap-3">
-            <Link
-              href="/rankings"
-              className="btn-outline"
-            >
-              Browse Popular
-            </Link>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="btn-primary"
-            >
-              + Deck
-            </button>
-          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn-primary"
+          >
+            + Deck
+          </button>
         </div>
 
         {/* Results count */}
@@ -152,34 +144,19 @@ export default function DashboardPage() {
               <Link
                 key={deck.id}
                 href={`/decks/${deck.id}`}
-                className="card hover:shadow-lg transition-shadow"
+                className="card hover:shadow-lg transition-shadow relative"
               >
                 <h3 className="text-xl font-semibold text-primary mb-2">
                   {deck.title}
                 </h3>
                 {deck.description && (
-                  <p className="text-gray-600 mb-3">{deck.description}</p>
+                  <p className="text-gray-600">{deck.description}</p>
                 )}
-                <div className="flex gap-2 text-sm flex-wrap">
-                  <span className="px-2 py-1 bg-primary/10 text-primary rounded">
-                    {deck.level}
+                {deck.cardCount !== undefined && (
+                  <span className="absolute bottom-4 right-4 text-sm text-gray-400">
+                    {deck.cardCount}
                   </span>
-                  <span className="px-2 py-1 bg-secondary/10 text-secondary-foreground rounded">
-                    {deck.language}
-                  </span>
-                  {deck.cardCount !== undefined && (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
-                      {deck.cardCount} card{deck.cardCount !== 1 ? 's' : ''}
-                    </span>
-                  )}
-                  <span className={`px-2 py-1 rounded text-xs ${
-                    deck.isPublic 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {deck.isPublic ? 'Public' : 'Private'}
-                  </span>
-                </div>
+                )}
               </Link>
             ))}
           </div>

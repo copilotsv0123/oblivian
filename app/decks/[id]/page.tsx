@@ -4,7 +4,7 @@ import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
-import { MoreVertical, Trash2, Edit, ChevronDown, ChevronUp, Calendar, Trophy, TrendingUp } from 'lucide-react'
+import { MoreVertical, Trash2, Edit, ChevronDown, ChevronUp, Calendar, Trophy, TrendingUp, Layers } from 'lucide-react'
 
 interface Card {
   id: string
@@ -230,35 +230,35 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
               {deck.description && (
                 <p className="text-gray-600 mb-4">{deck.description}</p>
               )}
-              <div className="flex flex-wrap gap-4 mb-4">
-                <span className="px-3 py-1 bg-primary/10 text-primary rounded">
-                  {deck.level}
-                </span>
-                <span className="text-gray-600">
-                  {cards.length} card{cards.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-
               {/* Study Statistics */}
-              {stats && (
-                <div className="flex flex-wrap gap-6 pt-4 border-t">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <div>
-                      <p className="text-xs text-gray-500">Last studied</p>
-                      <p className="text-sm font-medium">{formatRelativeTime(stats.lastStudyDate)}</p>
-                    </div>
+              <div className="flex flex-wrap gap-6 pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-gray-400" />
+                  <div>
+                    <p className="text-xs text-gray-500">Cards</p>
+                    <p className="text-sm font-medium">{cards.length}</p>
                   </div>
+                </div>
 
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-gray-400" />
-                    <div>
-                      <p className="text-xs text-gray-500">Sessions</p>
-                      <p className="text-sm font-medium">{stats.totalSessions}</p>
+                {stats && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                      <div>
+                        <p className="text-xs text-gray-500">Last studied</p>
+                        <p className="text-sm font-medium">{formatRelativeTime(stats.lastStudyDate)}</p>
+                      </div>
                     </div>
-                  </div>
 
-                  {stats.performanceGrade && (
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-gray-400" />
+                      <div>
+                        <p className="text-xs text-gray-500">Sessions</p>
+                        <p className="text-sm font-medium">{stats.totalSessions}</p>
+                      </div>
+                    </div>
+
+                    {stats.performanceGrade && (
                     <div className="flex items-center gap-2">
                       <Trophy className="w-4 h-4 text-gray-400" />
                       <div>
@@ -275,19 +275,20 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                     </div>
                   )}
 
-                  {!stats.performanceGrade && stats.reviewCount > 0 && (
-                    <div className="flex items-center gap-2">
-                      <Trophy className="w-4 h-4 text-gray-400" />
-                      <div>
-                        <p className="text-xs text-gray-500">Performance</p>
-                        <p className="text-sm text-gray-400">
-                          {10 - stats.reviewCount} more reviews needed
-                        </p>
+                    {!stats.performanceGrade && stats.reviewCount > 0 && (
+                      <div className="flex items-center gap-2">
+                        <Trophy className="w-4 h-4 text-gray-400" />
+                        <div>
+                          <p className="text-xs text-gray-500">Performance</p>
+                          <p className="text-sm text-gray-400">
+                            {10 - stats.reviewCount} more reviews needed
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </>
+                )}
+              </div>
             </div>
             <div className="relative">
               <button
@@ -314,19 +315,13 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
           </div>
         </div>
 
-        <div className="flex gap-4 mb-8">
+        <div className="flex justify-center mb-8">
           <button
             onClick={startStudySession}
-            className="btn-primary"
+            className="btn-primary text-lg px-8 py-3"
             disabled={cards.length === 0}
           >
             Start Study Session
-          </button>
-          <button
-            onClick={() => setShowAddCard(true)}
-            className="btn-outline"
-          >
-            + Card
           </button>
         </div>
 
@@ -348,10 +343,11 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
         ) : (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-primary">Cards</h2>
-            {cards.map((card, index) => (
-              <div
-                key={card.id}
-                className={`card transition-colors ${card.advancedNotes && editingCard !== card.id ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {cards.map((card, index) => (
+                <div
+                  key={card.id}
+                  className={`card transition-colors ${card.advancedNotes && editingCard !== card.id ? 'cursor-pointer hover:bg-gray-50' : ''}`}
                 onClick={() => {
                   if (card.advancedNotes && editingCard !== card.id) {
                     const newExpanded = new Set(expandedCards)
@@ -470,7 +466,8 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                   </div>
                 </div>
               </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
         {/* Similar Decks Section */}

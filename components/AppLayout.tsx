@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Home, Trophy, Sparkles, BarChart3, Settings, LogOut } from 'lucide-react'
+import { Home, Trophy, Sparkles, Settings, LogOut } from 'lucide-react'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -119,15 +119,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   <Sparkles className="w-4 h-4" />
                   Random Deck
                 </button>
-                <Link
-                  href="/rankings"
-                  className={`flex items-center gap-2 hover:text-primary transition-colors ${
-                    isActive('/rankings') ? 'text-primary font-semibold' : 'text-gray-600'
-                  }`}
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  Rankings
-                </Link>
                 <Link
                   href="/settings"
                   className={`flex items-center gap-2 hover:text-primary transition-colors ${
