@@ -355,7 +355,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
         ) : (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-primary">Cards</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-[1px] md:grid-cols-2 lg:grid-cols-3">
               {cards.map((card, index) => {
                 const perf = cardPerformance[card.id]
 

@@ -74,7 +74,7 @@
 
   /* Card Component */
   .card {
-    @apply rounded-lg border bg-card text-card-foreground shadow-sm p-6;
+    @apply border bg-card text-card-foreground shadow-sm p-6;
   }
 
   /* Form Components */
