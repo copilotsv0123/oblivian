@@ -360,7 +360,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                   </div>
                 ))}
               </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/40 to-transparent pointer-events-none"></div>
             </div>
           )}
         </div>
