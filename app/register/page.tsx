@@ -1,16 +1,25 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [returnUrl, setReturnUrl] = useState('/dashboard')
+
+  useEffect(() => {
+    const url = searchParams.get('returnUrl')
+    if (url) {
+      setReturnUrl(decodeURIComponent(url))
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,7 +50,7 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Failed to register')
       }
 
-      router.push('/dashboard')
+      router.push(returnUrl)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -114,7 +123,10 @@ export default function RegisterPage() {
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             Already have an account?{' '}
-            <Link href="/login" className="text-primary hover:underline">
+            <Link
+              href={returnUrl !== '/dashboard' ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : '/login'}
+              className="text-primary hover:underline"
+            >
               Login
             </Link>
           </p>

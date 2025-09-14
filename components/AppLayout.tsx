@@ -21,7 +21,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
     fetch('/api/auth/me')
       .then(res => {
         if (!res.ok) {
-          router.push('/login')
+          // Store the current path to redirect back after login
+          const returnUrl = encodeURIComponent(pathname)
+          router.push(`/login?returnUrl=${returnUrl}`)
           return null
         }
         return res.json()
@@ -43,7 +45,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         }
       })
       .finally(() => setLoading(false))
-  }, [router])
+  }, [router, pathname])
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })

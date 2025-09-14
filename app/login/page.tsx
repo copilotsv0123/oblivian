@@ -1,15 +1,24 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [returnUrl, setReturnUrl] = useState('/dashboard')
+
+  useEffect(() => {
+    const url = searchParams.get('returnUrl')
+    if (url) {
+      setReturnUrl(decodeURIComponent(url))
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,7 +38,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Failed to login')
       }
 
-      router.push('/dashboard')
+      router.push(returnUrl)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
