@@ -110,7 +110,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <span className="hidden sm:inline">Oblivian</span>
               </Link>
               {/* Desktop Menu */}
-              <div className="hidden md:flex gap-6">
+              <div className="hidden xl:flex gap-6">
                 <Link
                   href="/dashboard"
                   className={`flex items-center gap-2 hover:text-primary transition-colors ${
@@ -148,7 +148,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </div>
             </div>
             {/* Desktop User Info */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden xl:flex items-center gap-4">
               {user && (
                 <span className="text-gray-600">
                   {user.email}
@@ -165,7 +165,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-primary hover:bg-gray-100 transition-colors"
+              className="xl:hidden flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-primary hover:bg-gray-100 transition-colors"
             >
               {mobileMenuOpen ? (
                 <X className="w-6 h-6" />
@@ -178,7 +178,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t bg-white">
+          <div className="xl:hidden border-t bg-white">
             <div className="px-4 py-3 space-y-1">
               <Link
                 href="/dashboard"
