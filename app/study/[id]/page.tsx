@@ -155,7 +155,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
         }
       }
     }
-  }, [showAnswer, currentIndex, cards.length, handleConfidenceSelect])
+  }, [showAnswer, currentIndex, cards.length, handleConfidenceSelect, autoRevealSeconds])
 
   const handleReview = useCallback(async (rating: 'again' | 'hard' | 'good' | 'easy' | 'skip') => {
     if (!cards[currentIndex]) return
@@ -210,7 +210,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
     } catch (error) {
       console.error('Error recording review:', error)
     }
-  }, [cards, currentIndex, cardStartTime, resolvedParams.id, sessionId, sessionTime, router, handleConfidenceSelect])
+  }, [cards, currentIndex, cardStartTime, resolvedParams.id, sessionId, sessionTime, router, handleConfidenceSelect, autoRevealSeconds])
 
   // Keyboard shortcuts
   useEffect(() => {
