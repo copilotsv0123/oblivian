@@ -4,7 +4,7 @@ import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
-import { MoreVertical, Trash2, Edit } from 'lucide-react'
+import { MoreVertical, Trash2, Edit, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface Card {
   id: string
@@ -35,6 +35,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
   const [showCardMenu, setShowCardMenu] = useState<string | null>(null)
   const [editingCard, setEditingCard] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<{ front: string; back: string; advancedNotes?: string }>({ front: '', back: '' })
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
 
   const fetchDeck = useCallback(async () => {
     try {
@@ -245,13 +246,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
             {cards.map((card, index) => (
               <div
                 key={card.id}
-                className="card cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => {
-                  if (editingCard !== card.id) {
-                    setEditingCard(card.id)
-                    setEditValues({ front: card.front, back: card.back || '', advancedNotes: card.advancedNotes || '' })
-                  }
-                }}
+                className="card transition-colors"
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -294,29 +289,47 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                       </div>
                     ) : (
                       <>
-                        <p className="text-primary font-medium mt-1">
-                          {card.front}
-                        </p>
-                        {card.back && (
-                          <p className="text-gray-600 mt-2">
-                            {card.back}
-                            {card.advancedNotes && (
-                              <span className="inline-flex items-center gap-1 ml-2 text-xs text-indigo-500">
-                                <span>more</span>
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </span>
-                            )}
+                        <div>
+                          <p className="text-primary font-medium mt-1">
+                            {card.front}
                           </p>
-                        )}
-                        {!card.back && card.advancedNotes && (
-                          <div className="flex items-center gap-1 mt-2 text-xs text-indigo-500">
-                            <span>more</span>
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </div>
+                          {card.back && (
+                            <p className="text-gray-600 mt-2">
+                              {card.back}
+                            </p>
+                          )}
+                          {card.advancedNotes && expandedCards.has(card.id) && (
+                            <div className="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                              <p className="text-sm font-medium text-indigo-700 mb-2">Advanced Notes:</p>
+                              <p className="text-gray-700 whitespace-pre-wrap">{card.advancedNotes}</p>
+                            </div>
+                          )}
+                        </div>
+                        {card.advancedNotes && (
+                          <button
+                            onClick={() => {
+                              const newExpanded = new Set(expandedCards)
+                              if (newExpanded.has(card.id)) {
+                                newExpanded.delete(card.id)
+                              } else {
+                                newExpanded.add(card.id)
+                              }
+                              setExpandedCards(newExpanded)
+                            }}
+                            className="flex items-center gap-1 mt-3 text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
+                          >
+                            {expandedCards.has(card.id) ? (
+                              <>
+                                <ChevronUp className="w-4 h-4" />
+                                <span>Collapse</span>
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="w-4 h-4" />
+                                <span>Show advanced notes</span>
+                              </>
+                            )}
+                          </button>
                         )}
                       </>
                     )}
