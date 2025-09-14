@@ -319,7 +319,6 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                           </div>
                           {card.advancedNotes && expandedCards.has(card.id) && (
                             <div className="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                              <p className="text-sm font-medium text-indigo-700 mb-2">Advanced Notes:</p>
                               <p className="text-gray-700 whitespace-pre-wrap">{card.advancedNotes}</p>
                             </div>
                           )}
