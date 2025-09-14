@@ -101,6 +101,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 >
                   Dashboard
                 </Link>
+                <Link
+                  href="/achievements"
+                  className={`hover:text-primary transition-colors ${
+                    isActive('/achievements') ? 'text-primary font-semibold' : 'text-gray-600'
+                  }`}
+                >
+                  Achievements
+                </Link>
                 <button
                   onClick={handleRandomStudy}
                   className="hover:text-primary transition-colors text-gray-600"

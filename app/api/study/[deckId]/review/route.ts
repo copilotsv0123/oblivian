@@ -1,6 +1,7 @@
 import { withApiHandler, getJsonBody, ApiContext } from '@/lib/middleware/api-wrapper'
 import { studySessionRepository, deckScoreRepository } from '@/lib/repositories'
 import { scheduleReview, ReviewRating } from '@/lib/fsrs/scheduler'
+import { trackReview } from '@/lib/achievements/tracker'
 
 export const POST = withApiHandler(async ({ user, request }: ApiContext, routeContext: any) => {
   const { params } = routeContext as { params: Promise<{ deckId: string }> }
@@ -18,6 +19,7 @@ export const POST = withApiHandler(async ({ user, request }: ApiContext, routeCo
 
   const schedule = await scheduleReview(cardId, user.id, rating)
 
+  let reviewTimeSeconds = 0
   if (sessionId) {
     // Get the session to calculate elapsed time
     const session = await studySessionRepository.findById(sessionId)
@@ -27,6 +29,7 @@ export const POST = withApiHandler(async ({ user, request }: ApiContext, routeCo
       const secondsActive = Math.floor(
         (endTime.getTime() - session.startedAt.getTime()) / 1000
       )
+      reviewTimeSeconds = secondsActive
 
       await studySessionRepository.updateWithOwnershipCheck(
         sessionId,
@@ -38,6 +41,10 @@ export const POST = withApiHandler(async ({ user, request }: ApiContext, routeCo
       )
     }
   }
+
+  // Track achievement progress
+  const isCorrect = rating === 'good' || rating === 'easy'
+  await trackReview(user.id, isCorrect, reviewTimeSeconds)
 
   // Update deck score after review
   await deckScoreRepository.updateDeckScoreAfterReview(

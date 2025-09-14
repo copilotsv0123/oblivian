@@ -37,8 +37,10 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   const [cardStartTime, setCardStartTime] = useState<number>(0)
   const [warning, setWarning] = useState<string | null>(null)
   const [deckTitle, setDeckTitle] = useState<string>('')
+  const [timeRemaining, setTimeRemaining] = useState<number>(5)
   const sessionStartTime = useRef<number>(0)
   const timerInterval = useRef<NodeJS.Timeout | null>(null)
+  const autoAnswerTimer = useRef<NodeJS.Timeout | null>(null)
 
   const initSession = useCallback(async () => {
     try {
@@ -74,11 +76,13 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
       // Start session timer
       sessionStartTime.current = Date.now()
       setCardStartTime(Date.now())
-      
+
       // Start timer interval
       timerInterval.current = setInterval(() => {
         setSessionTime(Math.floor((Date.now() - sessionStartTime.current) / 1000))
       }, 1000)
+
+      // Auto-answer timer will be started via useEffect
     } catch (error) {
       console.error('Error initializing study session:', error)
     } finally {
@@ -89,13 +93,65 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   useEffect(() => {
     initSession()
 
-    // Cleanup timer on unmount
+    // Cleanup timers on unmount
     return () => {
       if (timerInterval.current) {
         clearInterval(timerInterval.current)
       }
+      if (autoAnswerTimer.current) {
+        clearTimeout(autoAnswerTimer.current)
+      }
     }
   }, [initSession])
+
+  const handleConfidenceSelect = useCallback((confidence: 'good' | 'easy' | 'dont_know') => {
+    // Clear auto-answer timer
+    if (autoAnswerTimer.current) {
+      clearTimeout(autoAnswerTimer.current)
+      autoAnswerTimer.current = null
+    }
+
+    const timeSpent = Math.floor((Date.now() - cardStartTime) / 1000)
+    setFrozenTime(timeSpent)
+    setSelectedConfidence(confidence)
+    setShowAnswer(true)
+    setShowAdvancedNotes(true) // Always show advanced notes when answer is revealed
+  }, [cardStartTime])
+
+  // Update countdown timer
+  useEffect(() => {
+    if (!showAnswer && cards.length > 0 && currentIndex < cards.length) {
+      const countdownInterval = setInterval(() => {
+        setTimeRemaining(prev => {
+          const newTime = Math.max(0, prev - 0.1)
+          return newTime
+        })
+      }, 100)
+
+      return () => clearInterval(countdownInterval)
+    }
+  }, [showAnswer, currentIndex, cards.length])
+
+  // Start auto-answer timer when showing a new card
+  useEffect(() => {
+    if (!showAnswer && cards.length > 0 && currentIndex < cards.length) {
+      // Clear any existing timer
+      if (autoAnswerTimer.current) {
+        clearTimeout(autoAnswerTimer.current)
+      }
+
+      // Start new timer
+      autoAnswerTimer.current = setTimeout(() => {
+        handleConfidenceSelect('dont_know')
+      }, 5000)
+
+      return () => {
+        if (autoAnswerTimer.current) {
+          clearTimeout(autoAnswerTimer.current)
+        }
+      }
+    }
+  }, [showAnswer, currentIndex, cards.length, handleConfidenceSelect])
 
   const handleReview = useCallback(async (rating: 'again' | 'hard' | 'good' | 'easy' | 'skip') => {
     if (!cards[currentIndex]) return
@@ -122,7 +178,13 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
         setSelectedConfidence(null)
         setShowAdvancedNotes(false)
         setFrozenTime(0)
+        setTimeRemaining(5)
         setCardStartTime(Date.now())
+
+        // Start auto-answer timer for next card
+        autoAnswerTimer.current = setTimeout(() => {
+          handleConfidenceSelect('dont_know')
+        }, 5000)
       } else {
         // End session
         if (timerInterval.current) {
@@ -144,15 +206,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
     } catch (error) {
       console.error('Error recording review:', error)
     }
-  }, [cards, currentIndex, cardStartTime, resolvedParams.id, sessionId, sessionTime, router])
-
-  const handleConfidenceSelect = useCallback((confidence: 'good' | 'easy' | 'dont_know') => {
-    const timeSpent = Math.floor((Date.now() - cardStartTime) / 1000)
-    setFrozenTime(timeSpent)
-    setSelectedConfidence(confidence)
-    setShowAnswer(true)
-    setShowAdvancedNotes(true) // Always show advanced notes when answer is revealed
-  }, [cardStartTime])
+  }, [cards, currentIndex, cardStartTime, resolvedParams.id, sessionId, sessionTime, router, handleConfidenceSelect])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -310,6 +364,37 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
             {!showAnswer ? (
               <div className="space-y-4">
                 <div className="w-24 sm:w-32 h-0.5 bg-gray-300 mx-auto my-6 sm:my-8"></div>
+
+                {/* Auto-answer countdown timer */}
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <div className="relative">
+                    <svg className="w-10 h-10 transform -rotate-90">
+                      <circle
+                        cx="20"
+                        cy="20"
+                        r="16"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        fill="none"
+                        className="text-gray-200"
+                      />
+                      <circle
+                        cx="20"
+                        cy="20"
+                        r="16"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        fill="none"
+                        strokeDasharray={`${(timeRemaining / 5) * 100.53} 100.53`}
+                        className="text-primary transition-all duration-1000 linear"
+                      />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-sm font-medium">
+                      {Math.ceil(timeRemaining)}
+                    </span>
+                  </div>
+                </div>
+
                 <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">How confident are you about your answer?</p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center items-stretch sm:items-center">
                   <button

@@ -2,6 +2,7 @@ import { withApiHandler, getJsonBody, ApiContext } from '@/lib/middleware/api-wr
 import { cardRepository } from '@/lib/repositories'
 import { CreateCardInput } from '@/lib/types/cards'
 import { MAX_CARDS_PER_DECK } from '@/lib/constants'
+import { trackCardsCreated } from '@/lib/achievements/tracker'
 
 interface BatchImportRequest {
   deckId: string
@@ -30,6 +31,11 @@ export const POST = withApiHandler(async ({ user, request }: ApiContext) => {
     user.id,
     cardInputs
   )
+
+  // Track achievement progress
+  if (result.success && result.cards) {
+    await trackCardsCreated(user.id, result.cards.length)
+  }
 
   return result
 })

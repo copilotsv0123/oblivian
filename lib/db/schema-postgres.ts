@@ -133,3 +133,39 @@ export type DeckEmbedding = typeof deckEmbeddings.$inferSelect
 export type NewDeckEmbedding = typeof deckEmbeddings.$inferInsert
 export type DeckRanking = typeof deckRankings.$inferSelect
 export type NewDeckRanking = typeof deckRankings.$inferInsert
+
+// User achievements tracking
+export const userAchievements = pgTable('user_achievements', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  achievementId: text('achievement_id').notNull(),
+  unlockedAt: timestamp('unlocked_at').defaultNow().notNull(),
+  notified: boolean('notified').default(false).notNull(),
+})
+
+// User statistics for achievement tracking
+export const userStats = pgTable('user_stats', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  totalSessions: integer('total_sessions').default(0).notNull(),
+  totalCardsReviewed: integer('total_cards_reviewed').default(0).notNull(),
+  totalCardsCreated: integer('total_cards_created').default(0).notNull(),
+  decksCreated: integer('decks_created').default(0).notNull(),
+  currentStreak: integer('current_streak').default(0).notNull(),
+  longestStreak: integer('longest_streak').default(0).notNull(),
+  lastStudyDate: timestamp('last_study_date'),
+  perfectSessions: integer('perfect_sessions').default(0).notNull(),
+  correctStreak: integer('correct_streak').default(0).notNull(),
+  longestCorrectStreak: integer('longest_correct_streak').default(0).notNull(),
+  nightSessions: integer('night_sessions').default(0).notNull(),
+  earlySessions: integer('early_sessions').default(0).notNull(),
+  weekendSessions: integer('weekend_sessions').default(0).notNull(),
+  publicDecks: integer('public_decks').default(0).notNull(),
+  languagesUsed: text('languages_used').default('[]').notNull(), // JSON array of language codes
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+export type UserAchievement = typeof userAchievements.$inferSelect
+export type NewUserAchievement = typeof userAchievements.$inferInsert
+export type UserStats = typeof userStats.$inferSelect
+export type NewUserStats = typeof userStats.$inferInsert

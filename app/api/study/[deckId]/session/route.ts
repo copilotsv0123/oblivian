@@ -1,5 +1,6 @@
 import { withApiHandler, getJsonBody, ApiContext } from '@/lib/middleware/api-wrapper'
 import { studySessionRepository } from '@/lib/repositories'
+import { trackSessionComplete } from '@/lib/achievements/tracker'
 
 export const POST = withApiHandler(async ({ user }: ApiContext, routeContext: any) => {
   const { params } = routeContext as { params: Promise<{ deckId: string }> }
@@ -18,15 +19,15 @@ export const POST = withApiHandler(async ({ user }: ApiContext, routeContext: an
 })
 
 export const PUT = withApiHandler(async ({ user, request }: ApiContext) => {
-  const { sessionId, secondsActive } = await getJsonBody(request)
+  const { sessionId, secondsActive, perfectSession } = await getJsonBody(request)
 
   if (!sessionId) {
     throw new Error('bad request: sessionId is required')
   }
 
   const result = await studySessionRepository.updateWithOwnershipCheck(
-    sessionId, 
-    user.id, 
+    sessionId,
+    user.id,
     {
       endedAt: new Date(),
       secondsActive: secondsActive || 0,
@@ -36,6 +37,9 @@ export const PUT = withApiHandler(async ({ user, request }: ApiContext) => {
   if (!result.success || !result.data) {
     throw new Error('Failed to update study session')
   }
+
+  // Track achievement progress
+  await trackSessionComplete(user.id, sessionId, perfectSession || false)
 
   return { session: result.data }
 })

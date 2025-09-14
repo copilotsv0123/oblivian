@@ -22,8 +22,7 @@ export default function DashboardPage() {
   const [allDecks, setAllDecks] = useState<Deck[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [levelFilter, setLevelFilter] = useState<string>('all')
-  const [languageFilter, setLanguageFilter] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState<string>('')
 
   const fetchDecks = useCallback(async () => {
     try {
@@ -45,25 +44,23 @@ export default function DashboardPage() {
     fetchDecks()
   }, [fetchDecks])
 
-  // Filter decks based on selected filters
+  // Filter decks based on search query
   useEffect(() => {
-    let filtered = allDecks
-
-    if (levelFilter !== 'all') {
-      filtered = filtered.filter(deck => deck.level === levelFilter)
+    if (!searchQuery.trim()) {
+      setDecks(allDecks)
+      return
     }
 
-    if (languageFilter !== 'all') {
-      filtered = filtered.filter(deck => deck.language === languageFilter)
-    }
+    const query = searchQuery.toLowerCase()
+    const filtered = allDecks.filter(deck =>
+      deck.title.toLowerCase().includes(query) ||
+      (deck.description && deck.description.toLowerCase().includes(query)) ||
+      deck.level.toLowerCase().includes(query) ||
+      deck.language.toLowerCase().includes(query)
+    )
 
     setDecks(filtered)
-  }, [allDecks, levelFilter, languageFilter])
-
-  // Get unique languages from all decks for filter dropdown
-  const availableLanguages = Array.from(
-    new Set(allDecks.map(deck => deck.language))
-  ).sort()
+  }, [allDecks, searchQuery])
 
   return (
     <AppLayout>
@@ -73,8 +70,21 @@ export default function DashboardPage() {
           <StudyHeatmap />
         </div>
 
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold text-primary">My Decks</h2>
+        <div className="flex justify-between items-start mb-8">
+          <div className="flex items-center gap-4 flex-1">
+            <h2 className="text-3xl font-bold text-primary">Decks</h2>
+            {!loading && allDecks.length > 0 && (
+              <div className="flex-1 max-w-md">
+                <input
+                  type="text"
+                  placeholder="Search decks..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="input w-full"
+                />
+              </div>
+            )}
+          </div>
           <div className="flex gap-3">
             <Link
               href="/rankings"
@@ -91,72 +101,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Filters */}
-        {!loading && allDecks.length > 0 && (
-          <div className="card mb-6">
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex items-center gap-2">
-                <label htmlFor="level-filter" className="text-sm font-medium text-gray-700">
-                  Level:
-                </label>
-                <select
-                  id="level-filter"
-                  value={levelFilter}
-                  onChange={(e) => setLevelFilter(e.target.value)}
-                  className="input text-sm py-1 px-2 min-w-[120px]"
-                >
-                  <option value="all">All Levels</option>
-                  <option value="simple">Simple</option>
-                  <option value="mid">Intermediate</option>
-                  <option value="expert">Expert</option>
-                </select>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <label htmlFor="language-filter" className="text-sm font-medium text-gray-700">
-                  Language:
-                </label>
-                <select
-                  id="language-filter"
-                  value={languageFilter}
-                  onChange={(e) => setLanguageFilter(e.target.value)}
-                  className="input text-sm py-1 px-2 min-w-[120px]"
-                >
-                  <option value="all">All Languages</option>
-                  {availableLanguages.map((lang) => (
-                    <option key={lang} value={lang}>
-                      {lang === 'en' ? 'English' :
-                       lang === 'es' ? 'Spanish' :
-                       lang === 'fr' ? 'French' :
-                       lang === 'de' ? 'German' :
-                       lang === 'it' ? 'Italian' :
-                       lang === 'pt' ? 'Portuguese' :
-                       lang === 'ru' ? 'Russian' :
-                       lang === 'zh' ? 'Chinese' :
-                       lang === 'ja' ? 'Japanese' :
-                       lang === 'ko' ? 'Korean' :
-                       lang.toUpperCase()}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {(levelFilter !== 'all' || languageFilter !== 'all') && (
-                <button
-                  onClick={() => {
-                    setLevelFilter('all')
-                    setLanguageFilter('all')
-                  }}
-                  className="text-sm text-primary hover:text-primary/80 underline"
-                >
-                  Clear filters
-                </button>
-              )}
-
-              <div className="ml-auto text-sm text-gray-600">
-                Showing {decks.length} of {allDecks.length} decks
-              </div>
-            </div>
+        {/* Results count */}
+        {!loading && searchQuery && (
+          <div className="mb-4 text-sm text-gray-600">
+            Showing {decks.length} of {allDecks.length} decks
           </div>
         )}
 
@@ -184,19 +132,16 @@ export default function DashboardPage() {
             ) : (
               <>
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                  No decks match your filters
+                  No decks match your search
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  Try adjusting your filters to see more decks
+                  Try adjusting your search to see more decks
                 </p>
                 <button
-                  onClick={() => {
-                    setLevelFilter('all')
-                    setLanguageFilter('all')
-                  }}
+                  onClick={() => setSearchQuery('')}
                   className="btn-secondary"
                 >
-                  Clear All Filters
+                  Clear Search
                 </button>
               </>
             )}
