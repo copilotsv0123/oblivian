@@ -246,12 +246,23 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
             {cards.map((card, index) => (
               <div
                 key={card.id}
-                className="card transition-colors"
+                className={`card transition-colors ${card.advancedNotes && editingCard !== card.id ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+                onClick={() => {
+                  if (card.advancedNotes && editingCard !== card.id) {
+                    const newExpanded = new Set(expandedCards)
+                    if (newExpanded.has(card.id)) {
+                      newExpanded.delete(card.id)
+                    } else {
+                      newExpanded.add(card.id)
+                    }
+                    setExpandedCards(newExpanded)
+                  }
+                }}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     {editingCard === card.id ? (
-                      <div className="space-y-3">
+                      <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="text"
                           value={editValues.front}
@@ -296,25 +307,14 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                           <div className="text-gray-600 mt-2">
                             <span>{card.back || ''}</span>
                             {card.advancedNotes && (
-                              <button
-                                onClick={() => {
-                                  const newExpanded = new Set(expandedCards)
-                                  if (newExpanded.has(card.id)) {
-                                    newExpanded.delete(card.id)
-                                  } else {
-                                    newExpanded.add(card.id)
-                                  }
-                                  setExpandedCards(newExpanded)
-                                }}
-                                className="inline-flex items-center gap-0.5 ml-2 text-sm text-indigo-600 hover:text-indigo-700 transition-colors align-middle"
-                              >
+                              <span className="inline-flex items-center gap-0.5 ml-2 text-sm text-indigo-600 align-middle">
                                 <span className="text-xs">{expandedCards.has(card.id) ? 'Less' : 'More'}</span>
                                 {expandedCards.has(card.id) ? (
                                   <ChevronUp className="w-4 h-4" />
                                 ) : (
                                   <ChevronDown className="w-4 h-4" />
                                 )}
-                              </button>
+                              </span>
                             )}
                           </div>
                           {card.advancedNotes && expandedCards.has(card.id) && (
