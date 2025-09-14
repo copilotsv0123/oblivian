@@ -101,7 +101,7 @@ export async function findSimilarDecks(deckId: string, limit = 5) {
     return []
   }
   
-  const currentVector = JSON.parse(currentEmbedding.vector as string) as number[]
+  const currentVector = currentEmbedding.vector as number[]
   
   return await deckEmbeddingRepository.findSimilarDecks(deckId, currentVector, limit)
 }
