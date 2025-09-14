@@ -306,12 +306,13 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                                   }
                                   setExpandedCards(newExpanded)
                                 }}
-                                className="inline-block ml-1 text-indigo-600 hover:text-indigo-700 transition-colors align-middle"
+                                className="inline-flex items-center gap-0.5 ml-2 text-sm text-indigo-600 hover:text-indigo-700 transition-colors align-middle"
                               >
+                                <span className="text-xs">{expandedCards.has(card.id) ? 'Less' : 'More'}</span>
                                 {expandedCards.has(card.id) ? (
-                                  <ChevronUp className="w-3 h-3 inline-block" />
+                                  <ChevronUp className="w-4 h-4" />
                                 ) : (
-                                  <ChevronDown className="w-3 h-3 inline-block" />
+                                  <ChevronDown className="w-4 h-4" />
                                 )}
                               </button>
                             )}
