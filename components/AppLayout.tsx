@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Home, Trophy, Sparkles, Settings, LogOut } from 'lucide-react'
+import { Home, Trophy, Sparkles, Settings, LogOut, Menu, X } from 'lucide-react'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -15,6 +15,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [achievementCount, setAchievementCount] = useState<{ earned: number; total: number } | null>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     // Check authentication
@@ -90,8 +91,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
+            {/* Logo and Desktop Menu */}
             <div className="flex items-center gap-8">
-              <Link href="/dashboard" className="flex items-center gap-2 text-2xl font-bold text-primary">
+              <Link href="/dashboard" className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-primary">
                 <svg width="32" height="32" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <defs>
                     <linearGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -105,9 +107,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   <circle cx="280" cy="160" r="60" fill="white" fillOpacity="0.9"/>
                   <text x="280" y="185" fontSize="72" fontWeight="bold" fill="url(#headerGradient)" textAnchor="middle" fontFamily="system-ui, -apple-system, sans-serif">O</text>
                 </svg>
-                Oblivian
+                <span className="hidden sm:inline">Oblivian</span>
               </Link>
-              <div className="flex gap-6">
+              {/* Desktop Menu */}
+              <div className="hidden md:flex gap-6">
                 <Link
                   href="/dashboard"
                   className={`flex items-center gap-2 hover:text-primary transition-colors ${
@@ -144,7 +147,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </Link>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            {/* Desktop User Info */}
+            <div className="hidden md:flex items-center gap-4">
               {user && (
                 <span className="text-gray-600">
                   {user.email}
@@ -158,8 +162,84 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 Logout
               </button>
             </div>
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-primary hover:bg-gray-100 transition-colors"
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t bg-white">
+            <div className="px-4 py-3 space-y-1">
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors ${
+                  isActive('/dashboard') ? 'text-primary font-semibold bg-indigo-50' : 'text-gray-600'
+                }`}
+              >
+                <Home className="w-5 h-5" />
+                Dashboard
+              </Link>
+              <Link
+                href="/achievements"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors ${
+                  isActive('/achievements') ? 'text-primary font-semibold bg-indigo-50' : 'text-gray-600'
+                }`}
+              >
+                <Trophy className="w-5 h-5" />
+                Achievements {achievementCount && `(${achievementCount.earned}/${achievementCount.total})`}
+              </Link>
+              <button
+                onClick={() => {
+                  handleRandomStudy()
+                  setMobileMenuOpen(false)
+                }}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 w-full text-left"
+              >
+                <Sparkles className="w-5 h-5" />
+                Random Deck
+              </button>
+              <Link
+                href="/settings"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors ${
+                  isActive('/settings') ? 'text-primary font-semibold bg-indigo-50' : 'text-gray-600'
+                }`}
+              >
+                <Settings className="w-5 h-5" />
+                Settings
+              </Link>
+              <div className="border-t pt-3 mt-3">
+                {user && (
+                  <div className="px-3 py-2 text-sm text-gray-600">
+                    {user.email}
+                  </div>
+                )}
+                <button
+                  onClick={() => {
+                    handleLogout()
+                    setMobileMenuOpen(false)
+                  }}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 w-full text-left"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
       <main>{children}</main>
     </div>
