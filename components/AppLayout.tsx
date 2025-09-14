@@ -53,8 +53,21 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-8">
-              <Link href="/dashboard" className="text-2xl font-bold text-primary">
-                🧠 Oblivian
+              <Link href="/dashboard" className="flex items-center gap-2 text-2xl font-bold text-primary">
+                <svg width="32" height="32" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style={{ stopColor: '#6366f1', stopOpacity: 1 }} />
+                      <stop offset="100%" style={{ stopColor: '#a78bfa', stopOpacity: 1 }} />
+                    </linearGradient>
+                  </defs>
+                  <rect x="40" y="140" width="320" height="200" rx="16" fill="url(#headerGradient)" fillOpacity="0.3" stroke="url(#headerGradient)" strokeWidth="4"/>
+                  <rect x="80" y="100" width="320" height="200" rx="16" fill="url(#headerGradient)" fillOpacity="0.5" stroke="url(#headerGradient)" strokeWidth="4"/>
+                  <rect x="120" y="60" width="320" height="200" rx="16" fill="url(#headerGradient)" stroke="url(#headerGradient)" strokeWidth="4"/>
+                  <circle cx="280" cy="160" r="60" fill="white" fillOpacity="0.9"/>
+                  <text x="280" y="185" fontSize="72" fontWeight="bold" fill="url(#headerGradient)" textAnchor="middle" fontFamily="system-ui, -apple-system, sans-serif">O</text>
+                </svg>
+                Oblivian
               </Link>
               <div className="flex gap-6">
                 <Link 

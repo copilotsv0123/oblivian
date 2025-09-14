@@ -45,8 +45,7 @@ export default function AboutPage() {
 
         <div className="text-center">
           <div className="flex gap-4 justify-center">
-            <a href="/register" className="btn-primary">Get Started</a>
-            <a href="/login" className="btn-outline">Login</a>
+            <a href="/login" className="btn-primary">Login</a>
           </div>
         </div>
       </div>
