@@ -81,6 +81,11 @@
     @apply border bg-card text-card-foreground shadow-sm p-6;
   }
 
+  /* Card hover gradient */
+  .card-hover-gradient {
+    @apply bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50;
+  }
+
   /* Form Components */
   .label {
     @apply text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 block mb-2;

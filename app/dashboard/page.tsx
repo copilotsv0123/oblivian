@@ -132,7 +132,7 @@ export default function DashboardPage() {
               <Link
                 key={deck.id}
                 href={`/decks/${deck.id}`}
-                className={`card hover:shadow-lg hover:scale-[1.02] hover:border-indigo-500 hover:bg-indigo-50 hover:z-10 transition-all duration-200 relative ${
+                className={`card hover:shadow-lg hover:scale-[1.02] hover:border-indigo-500 hover:card-hover-gradient hover:z-10 transition-all duration-200 relative ${
                   index % 2 === 0 ? 'hover:rotate-1' : 'hover:-rotate-1'
                 }`}
               >

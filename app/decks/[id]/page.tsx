@@ -286,7 +286,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                 return (
                   <div
                     key={card.id}
-                    className={`card transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:border-indigo-500 hover:bg-indigo-50 hover:z-10 relative ${
+                    className={`card transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:border-indigo-500 hover:card-hover-gradient hover:z-10 relative ${
                       index % 2 === 0 ? 'hover:rotate-1' : 'hover:-rotate-1'
                     } ${card.advancedNotes ? 'cursor-pointer' : ''}`}
                   onClick={() => {
