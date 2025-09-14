@@ -285,7 +285,8 @@ export class CardRepository extends BaseRepository {
       const maxNewCards = Math.max(0, limit - actuallyDueCards.length)
 
       // Get new cards (cards that have never been reviewed by this user)
-      const newCardsQuery = await db
+      // First get all unreviewed cards, then randomize
+      const allNewCardsQuery = await db
         .select()
         .from(cards)
         .leftJoin(reviews, and(
@@ -298,9 +299,15 @@ export class CardRepository extends BaseRepository {
             isNull(reviews.id)
           )
         )
-        .limit(maxNewCards)
 
-      const newCards = newCardsQuery.map(c => c.cards.id)
+      // Randomize the new cards selection
+      const shuffledNewCards = allNewCardsQuery
+        .map(c => ({ id: c.cards.id, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .slice(0, maxNewCards)
+        .map(c => c.id)
+
+      const newCards = shuffledNewCards
 
       // Calculate how many more cards we need after due + new
       const currentCount = actuallyDueCards.length + newCards.length

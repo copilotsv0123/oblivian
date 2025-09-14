@@ -35,7 +35,10 @@ export const GET = withApiHandler(async ({ user, request }: ApiContext, routeCon
 
   const queueCards = await cardRepository.findByIds(allCardIds)
   const cardMap = new Map(queueCards.map(c => [c.id, c]))
-  const orderedCards = allCardIds
+
+  // Shuffle all cards to randomize the study order
+  const shuffledCardIds = [...allCardIds].sort(() => Math.random() - 0.5)
+  const orderedCards = shuffledCardIds
     .map(id => cardMap.get(id))
     .filter(Boolean)
 
