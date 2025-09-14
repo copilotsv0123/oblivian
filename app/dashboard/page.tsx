@@ -132,21 +132,29 @@ export default function DashboardPage() {
               <Link
                 key={deck.id}
                 href={`/decks/${deck.id}`}
-                className={`card hover:shadow-lg hover:scale-[1.02] hover:border-indigo-500 hover:card-hover-gradient hover:z-10 transition-all duration-200 relative ${
+                className={`card hover:shadow-lg hover:scale-[1.02] hover:border-indigo-500 hover:card-hover-gradient hover:z-10 transition-all duration-200 relative group ${
                   index % 2 === 0 ? 'hover:rotate-1' : 'hover:-rotate-1'
                 }`}
               >
-                <h3 className="text-xl font-semibold text-primary mb-2">
-                  {deck.title}
-                </h3>
-                {deck.description && (
-                  <p className="text-gray-600">{deck.description}</p>
-                )}
+                <div className="transition-all duration-200 group-hover:blur-[1px]">
+                  <h3 className="text-xl font-semibold text-primary mb-2">
+                    {deck.title}
+                  </h3>
+                  {deck.description && (
+                    <p className="text-gray-600">{deck.description}</p>
+                  )}
+                </div>
                 {deck.cardCount !== undefined && (
-                  <span className="absolute bottom-4 right-4 text-sm text-gray-400">
+                  <span className="absolute bottom-4 right-4 text-sm text-gray-400 transition-all duration-200 group-hover:blur-[1px]">
                     {deck.cardCount}
                   </span>
                 )}
+                {/* Hover overlay with button */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                  <div className="btn-glass px-6 py-3 transform scale-0 group-hover:scale-100 transition-transform duration-150">
+                    Let's go! 🚀
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
