@@ -85,12 +85,6 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="btn-primary"
-          >
-            + Deck
-          </button>
         </div>
 
         {/* Results count */}
@@ -111,15 +105,9 @@ export default function DashboardPage() {
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">
                   No decks yet
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-gray-600">
                   Create your first deck to start learning
                 </p>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="btn-secondary"
-                >
-                  + Deck
-                </button>
               </>
             ) : (
               <>

@@ -34,8 +34,6 @@ export default function AchievementsPage() {
   const [totalPoints, setTotalPoints] = useState(0)
   const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
-
   useEffect(() => {
     const fetchAchievements = async () => {
       try {
@@ -55,20 +53,6 @@ export default function AchievementsPage() {
 
     fetchAchievements()
   }, [])
-
-  const categories = [
-    { id: 'all', name: 'All', icon: '🏆' },
-    { id: 'study', name: 'Study', icon: '📚' },
-    { id: 'streak', name: 'Streaks', icon: '🔥' },
-    { id: 'cards', name: 'Cards', icon: '🃏' },
-    { id: 'decks', name: 'Decks', icon: '📦' },
-    { id: 'performance', name: 'Performance', icon: '⚡' },
-    { id: 'special', name: 'Special', icon: '✨' },
-  ]
-
-  const filteredAchievements = selectedCategory === 'all'
-    ? achievements
-    : achievements.filter(a => a.category === selectedCategory)
 
   const unlockedCount = achievements.filter(a => a.unlocked).length
   const completionRate = achievements.length > 0
@@ -147,29 +131,11 @@ export default function AchievementsPage() {
               </div>
             )}
           </div>
-
-          {/* Category Filter */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {categories.map(category => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                  selectedCategory === category.id
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                }`}
-              >
-                <span>{category.icon}</span>
-                <span>{category.name}</span>
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Achievements Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredAchievements.map(achievement => (
+          {achievements.map(achievement => (
             <div
               key={achievement.id}
               className={`card relative ${
@@ -253,9 +219,9 @@ export default function AchievementsPage() {
           ))}
         </div>
 
-        {filteredAchievements.length === 0 && (
+        {achievements.length === 0 && (
           <div className="text-center py-12 text-gray-500">
-            No achievements in this category yet.
+            No achievements yet.
           </div>
         )}
       </div>

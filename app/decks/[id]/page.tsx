@@ -4,7 +4,7 @@ import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
-import { MoreVertical, Trash2, Edit, ChevronDown, ChevronUp, Calendar, Trophy, TrendingUp, Layers, CheckCircle, AlertCircle, XCircle } from 'lucide-react'
+import { ChevronDown, ChevronUp, Calendar, Trophy, TrendingUp, Layers, CheckCircle, AlertCircle, XCircle } from 'lucide-react'
 import Tooltip from '@/components/Tooltip'
 
 interface Card {
@@ -41,10 +41,6 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
   const [loading, setLoading] = useState(true)
   const [showAddCard, setShowAddCard] = useState(false)
   const [similarDecks, setSimilarDecks] = useState<any[]>([])
-  const [showDeckMenu, setShowDeckMenu] = useState(false)
-  const [showCardMenu, setShowCardMenu] = useState<string | null>(null)
-  const [editingCard, setEditingCard] = useState<string | null>(null)
-  const [editValues, setEditValues] = useState<{ front: string; back: string; advancedNotes?: string }>({ front: '', back: '' })
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
   const [stats, setStats] = useState<DeckStats | null>(null)
   const [cardPerformance, setCardPerformance] = useState<Record<string, {
@@ -106,18 +102,6 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
     // fetchSimilarDecks() // Disabled until OpenAI integration is complete
   }, [fetchDeck, fetchSimilarDecks])
 
-  // Close menus when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setShowDeckMenu(false)
-      setShowCardMenu(null)
-    }
-
-    if (showDeckMenu || showCardMenu) {
-      document.addEventListener('click', handleClickOutside)
-      return () => document.removeEventListener('click', handleClickOutside)
-    }
-  }, [showDeckMenu, showCardMenu])
 
   const formatRelativeTime = (dateString: string | null) => {
     if (!dateString) return 'Never'
@@ -158,59 +142,6 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
     router.push(`/study/${resolvedParams.id}?limit=10`)
   }
 
-  const handleDeleteDeck = async () => {
-    if (!confirm('Are you sure you want to delete this deck? This action cannot be undone.')) {
-      return
-    }
-    
-    try {
-      const res = await fetch(`/api/decks/${resolvedParams.id}`, {
-        method: 'DELETE',
-      })
-      
-      if (res.ok) {
-        router.push('/dashboard')
-      }
-    } catch (error) {
-      console.error('Error deleting deck:', error)
-    }
-  }
-
-  const handleDeleteCard = async (cardId: string) => {
-    if (!confirm('Are you sure you want to delete this card?')) {
-      return
-    }
-    
-    try {
-      const res = await fetch(`/api/cards/${cardId}`, {
-        method: 'DELETE',
-      })
-      
-      if (res.ok) {
-        setCards(cards.filter(c => c.id !== cardId))
-        setShowCardMenu(null)
-      }
-    } catch (error) {
-      console.error('Error deleting card:', error)
-    }
-  }
-
-  const handleUpdateCard = async (cardId: string) => {
-    try {
-      const res = await fetch(`/api/cards/${cardId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editValues),
-      })
-      
-      if (res.ok) {
-        fetchDeck()
-        setEditingCard(null)
-      }
-    } catch (error) {
-      console.error('Error updating card:', error)
-    }
-  }
 
   if (loading) {
     return (
@@ -302,28 +233,6 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                 )}
               </div>
             </div>
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowDeckMenu(!showDeckMenu)
-                }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <MoreVertical className="w-5 h-5 text-gray-500" />
-              </button>
-              {showDeckMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
-                  <button
-                    onClick={handleDeleteDeck}
-                    className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-red-600"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete Deck
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
@@ -362,9 +271,9 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                 return (
                   <div
                     key={card.id}
-                    className={`card transition-colors relative ${card.advancedNotes && editingCard !== card.id ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+                    className={`card transition-colors relative ${card.advancedNotes ? 'cursor-pointer hover:bg-gray-50' : ''}`}
                   onClick={() => {
-                  if (card.advancedNotes && editingCard !== card.id) {
+                  if (card.advancedNotes) {
                     const newExpanded = new Set(expandedCards)
                     if (newExpanded.has(card.id)) {
                       newExpanded.delete(card.id)
@@ -377,45 +286,6 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    {editingCard === card.id ? (
-                      <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="text"
-                          value={editValues.front}
-                          onChange={(e) => setEditValues({ ...editValues, front: e.target.value })}
-                          className="w-full px-3 py-2 border rounded-lg"
-                          placeholder="Question"
-                        />
-                        <input
-                          type="text"
-                          value={editValues.back}
-                          onChange={(e) => setEditValues({ ...editValues, back: e.target.value })}
-                          className="w-full px-3 py-2 border rounded-lg"
-                          placeholder="Answer"
-                        />
-                        <textarea
-                          value={editValues.advancedNotes || ''}
-                          onChange={(e) => setEditValues({ ...editValues, advancedNotes: e.target.value })}
-                          className="w-full px-3 py-2 border rounded-lg resize-vertical min-h-[80px]"
-                          placeholder="Advanced Notes (optional): Add deeper insights, related concepts, or additional examples"
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleUpdateCard(card.id)}
-                            className="btn-primary text-sm"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingCard(null)}
-                            className="btn-outline text-sm"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
                         <div>
                           <p className="text-primary font-medium mt-1">
                             {card.front}
@@ -439,8 +309,6 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                             </div>
                           )}
                         </div>
-                      </>
-                    )}
                   </div>
 
                   {/* Performance indicator icon */}
@@ -461,43 +329,6 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                       ) : null}
                     </div>
                   )}
-                  <div className="relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setShowCardMenu(showCardMenu === card.id ? null : card.id)
-                      }}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      <MoreVertical className="w-5 h-5 text-gray-500" />
-                    </button>
-                    {showCardMenu === card.id && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setEditingCard(card.id)
-                            setEditValues({ front: card.front, back: card.back || '', advancedNotes: card.advancedNotes || '' })
-                            setShowCardMenu(null)
-                          }}
-                          className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50"
-                        >
-                          <Edit className="w-4 h-4" />
-                          Edit Card
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteCard(card.id)
-                          }}
-                          className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete Card
-                        </button>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
                 )
