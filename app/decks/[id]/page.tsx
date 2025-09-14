@@ -293,11 +293,35 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                           <p className="text-primary font-medium mt-1">
                             {card.front}
                           </p>
-                          {card.back && (
-                            <p className="text-gray-600 mt-2">
-                              {card.back}
-                            </p>
-                          )}
+                          <p className="text-gray-600 mt-2">
+                            {card.back || ''}
+                            {card.advancedNotes && (
+                              <button
+                                onClick={() => {
+                                  const newExpanded = new Set(expandedCards)
+                                  if (newExpanded.has(card.id)) {
+                                    newExpanded.delete(card.id)
+                                  } else {
+                                    newExpanded.add(card.id)
+                                  }
+                                  setExpandedCards(newExpanded)
+                                }}
+                                className="inline-flex items-center gap-1 ml-2 text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
+                              >
+                                {expandedCards.has(card.id) ? (
+                                  <>
+                                    <ChevronUp className="w-4 h-4" />
+                                    <span>Collapse</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronDown className="w-4 h-4" />
+                                    <span>More</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </p>
                           {card.advancedNotes && expandedCards.has(card.id) && (
                             <div className="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                               <p className="text-sm font-medium text-indigo-700 mb-2">Advanced Notes:</p>
@@ -305,32 +329,6 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                             </div>
                           )}
                         </div>
-                        {card.advancedNotes && (
-                          <button
-                            onClick={() => {
-                              const newExpanded = new Set(expandedCards)
-                              if (newExpanded.has(card.id)) {
-                                newExpanded.delete(card.id)
-                              } else {
-                                newExpanded.add(card.id)
-                              }
-                              setExpandedCards(newExpanded)
-                            }}
-                            className="flex items-center gap-1 mt-3 text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
-                          >
-                            {expandedCards.has(card.id) ? (
-                              <>
-                                <ChevronUp className="w-4 h-4" />
-                                <span>Collapse</span>
-                              </>
-                            ) : (
-                              <>
-                                <ChevronDown className="w-4 h-4" />
-                                <span>Show advanced notes</span>
-                              </>
-                            )}
-                          </button>
-                        )}
                       </>
                     )}
                   </div>
