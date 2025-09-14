@@ -132,66 +132,18 @@ Replace `YOUR_API_TOKEN` with the token from Settings.
 
 ### MCP Tools Available
 - `list_decks` - View all your decks
-- `create_deck` - Create new decks
+- `create_deck` - Create new decks with title, description, level, and language
+- `update_deck` - Update deck properties (title, description, level, language, visibility)
+- `delete_deck` - Delete a deck and all its cards
 - `create_cards_batch` - Generate multiple cards at once with advanced notes
 - `list_cards` - Browse cards in a deck
-- `delete_card` - Remove cards
-- `update_card` - Edit existing cards
-
-## 🏗️ Architecture
-
-```
-oblivian/
-├── app/                    # Next.js 15 App Router
-│   ├── api/               # API routes (including MCP SSE endpoint)
-│   ├── login/             # Authentication page
-│   └── (main)/            # Main application pages
-├── components/            # Reusable React components
-├── lib/                   # Core libraries
-│   ├── auth/             # JWT & token authentication
-│   ├── db/               # Database layer (Drizzle ORM)
-│   ├── fsrs/             # Spaced repetition algorithm
-│   ├── embeddings/       # Vector similarity features
-│   └── repositories/     # Data access layer
-└── public/               # Static assets
-```
-
-### Tech Stack
-
-- **Frontend**: Next.js 15.5, React 19, TypeScript 5.9
-- **Styling**: Tailwind CSS v3, Custom design system
-- **Backend**: Next.js API Routes, Server-side rendering
-- **Database**: PostgreSQL (Neon) with pgvector extension
-- **ORM**: Drizzle ORM with type-safe queries
-- **Authentication**: JWT tokens + API tokens for MCP
-- **AI Integration**: MCP protocol for Claude Desktop (SSE with stdio bridge)
-- **Algorithm**: FSRS (Free Spaced Repetition Scheduler)
-- **Deployment**: Vercel with automatic CI/CD
-- **Analytics**: Vercel Analytics
+- `update_card` - Edit a single card's content
+- `update_cards_batch` - Update multiple cards at once
+- `delete_card` - Remove a single card
+- `delete_cards_batch` - Delete multiple cards at once
+- `get_api_info` - Get information about the API connection
 
 ## 📚 Documentation
-
-### Key Features
-
-#### Advanced Notes
-Cards can include advanced notes for deeper learning:
-- Add comprehensive explanations
-- Include related concepts and examples
-- Collapsible view in deck management
-- Displayed during study sessions for better understanding
-
-#### Study Sessions
-- Timed sessions with progress tracking
-- Four difficulty ratings: Again, Hard, Good, Easy
-- Skip option for problematic cards
-- Session statistics and time tracking
-- Visual progress indicators
-
-#### Deck Rankings
-- Discover popular decks based on community usage
-- 7-day and 30-day ranking windows
-- Metrics include cards reviewed, hours studied, and unique users
-- Automatic ranking updates
 
 ### Creating Cards
 
@@ -214,24 +166,6 @@ Cards can include advanced notes for deeper learning:
 3. Rate your recall (Again/Hard/Good/Easy)
 4. Cards are rescheduled based on FSRS algorithm
 5. Track your progress and maintain streaks
-
-## 🎯 Roadmap
-
-### Near Term
-- [ ] Import/Export (Anki compatibility)
-- [ ] Public deck marketplace
-- [ ] Enhanced statistics dashboard
-- [ ] Markdown support in cards
-
-### Future
-- [ ] Mobile app (React Native)
-- [ ] Collaborative decks and sharing
-- [ ] Offline mode with sync
-- [ ] Voice input for cards
-- [ ] Image and diagram support
-- [ ] LaTeX formula rendering
-- [ ] Multiple language support
-- [ ] Gamification features
 
 ## 🤝 Contributing
 
