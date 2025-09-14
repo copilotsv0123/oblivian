@@ -215,33 +215,58 @@ export class CardRepository extends BaseRepository {
     }
   }
 
-  async findDueAndNewCards(userId: string, deckId: string, limit = 20) {
+  async findDueAndNewCards(userId: string, deckId: string, limit = 10) {
     try {
       this.validateRequiredFields({ userId, deckId }, ['userId', 'deckId'])
-      
+
       const now = new Date()
-      
-      // Get due reviews (cards that have been reviewed and are due for review)
-      const dueReviews = await db
-        .selectDistinct({
+
+      // First, get all reviews for cards in this deck to find the latest review per card
+      const allReviews = await db
+        .select({
           cardId: reviews.cardId,
           scheduledAt: reviews.scheduledAt,
+          reviewedAt: reviews.reviewedAt,
         })
         .from(reviews)
         .innerJoin(cards, eq(reviews.cardId, cards.id))
         .where(
           and(
             eq(reviews.userId, userId),
-            eq(cards.deckId, deckId),
-            lte(reviews.scheduledAt, now)
+            eq(cards.deckId, deckId)
           )
         )
-        .orderBy(reviews.scheduledAt)
-        .limit(limit)
-        
+        .orderBy(desc(reviews.reviewedAt))
+
+      // Get the latest review per card
+      const latestReviewPerCard = new Map()
+      allReviews.forEach(review => {
+        if (!latestReviewPerCard.has(review.cardId) ||
+            review.reviewedAt > latestReviewPerCard.get(review.cardId).reviewedAt) {
+          latestReviewPerCard.set(review.cardId, review)
+        }
+      })
+
+      // Separate actually due cards from future cards
+      const actuallyDueCards: Array<{cardId: string, scheduledAt: Date, reviewedAt: Date}> = []
+      const futureCards: Array<{cardId: string, scheduledAt: Date, reviewedAt: Date}> = []
+
+      latestReviewPerCard.forEach(review => {
+        if (review.scheduledAt <= now) {
+          actuallyDueCards.push(review)
+        } else {
+          futureCards.push(review)
+        }
+      })
+
+      // Sort future cards by how soon they're due (earliest first)
+      futureCards.sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
+
+      // Calculate how many new cards we can take
+      const maxNewCards = Math.max(0, limit - actuallyDueCards.length)
 
       // Get new cards (cards that have never been reviewed by this user)
-      const newCards = await db
+      const newCardsQuery = await db
         .select()
         .from(cards)
         .leftJoin(reviews, and(
@@ -254,12 +279,23 @@ export class CardRepository extends BaseRepository {
             isNull(reviews.id)
           )
         )
-        .limit(Math.max(0, limit - dueReviews.length))
-        
+        .limit(maxNewCards)
+
+      const newCards = newCardsQuery.map(c => c.cards.id)
+
+      // Calculate how many more cards we need after due + new
+      const currentCount = actuallyDueCards.length + newCards.length
+      const needMoreCards = Math.max(0, limit - currentCount)
+
+      // If we still need more cards, add future cards (bring them forward)
+      const additionalCards = futureCards.slice(0, needMoreCards)
 
       return {
-        due: dueReviews.map(r => r.cardId),
-        new: newCards.map(c => c.cards.id),
+        due: [
+          ...actuallyDueCards.map(r => r.cardId),
+          ...additionalCards.map(r => r.cardId) // Include future cards if needed
+        ],
+        new: newCards,
       }
     } catch (error) {
       this.handleError(error, 'findDueAndNewCards')

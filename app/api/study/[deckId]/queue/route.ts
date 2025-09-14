@@ -16,7 +16,7 @@ export const GET = withApiHandler(async ({ user, request }: ApiContext, routeCon
   }
 
   const searchParams = getParams(request)
-  const limit = parseInt(searchParams.get('limit') || '20', 10)
+  const limit = parseInt(searchParams.get('limit') || '10', 10)
 
   const queue = await getDueCards(user.id, deckId, limit)
   

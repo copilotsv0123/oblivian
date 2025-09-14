@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 
@@ -37,6 +37,29 @@ export default function AppLayout({ children }: AppLayoutProps) {
     router.push('/login')
   }
 
+  const handleRandomStudy = useCallback(async () => {
+    try {
+      // Fetch user's decks with card counts
+      const res = await fetch('/api/decks')
+      if (!res.ok) return
+
+      const data = await res.json()
+      const decksWithCards = data.decks.filter((deck: { cardCount?: number }) => (deck.cardCount || 0) > 0)
+
+      if (decksWithCards.length === 0) {
+        router.push('/dashboard')
+        return
+      }
+
+      // Pick random deck and navigate
+      const randomDeck = decksWithCards[Math.floor(Math.random() * decksWithCards.length)]
+      router.push(`/study/${randomDeck.id}`)
+    } catch (error) {
+      console.error('Error starting random study:', error)
+      router.push('/dashboard')
+    }
+  }, [router])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-accent flex items-center justify-center">
@@ -70,16 +93,22 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 Oblivian
               </Link>
               <div className="flex gap-6">
-                <Link 
-                  href="/dashboard" 
+                <Link
+                  href="/dashboard"
                   className={`hover:text-primary transition-colors ${
                     isActive('/dashboard') ? 'text-primary font-semibold' : 'text-gray-600'
                   }`}
                 >
                   Dashboard
                 </Link>
-                <Link 
-                  href="/rankings" 
+                <button
+                  onClick={handleRandomStudy}
+                  className="hover:text-primary transition-colors text-gray-600"
+                >
+                  Random Study
+                </button>
+                <Link
+                  href="/rankings"
                   className={`hover:text-primary transition-colors ${
                     isActive('/rankings') ? 'text-primary font-semibold' : 'text-gray-600'
                   }`}

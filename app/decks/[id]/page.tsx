@@ -88,7 +88,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
   }, [showDeckMenu, showCardMenu])
 
   const startStudySession = () => {
-    router.push(`/study/${resolvedParams.id}`)
+    router.push(`/study/${resolvedParams.id}?limit=10`)
   }
 
   const handleDeleteDeck = async () => {

@@ -113,6 +113,6 @@ export async function scheduleReview(
   }
 }
 
-export async function getDueCards(userId: string, deckId: string, limit: number = 20) {
+export async function getDueCards(userId: string, deckId: string, limit: number = 10) {
   return await cardRepository.findDueAndNewCards(userId, deckId, limit)
 }

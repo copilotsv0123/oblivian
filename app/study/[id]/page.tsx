@@ -36,6 +36,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   const [sessionTime, setSessionTime] = useState(0)
   const [cardStartTime, setCardStartTime] = useState<number>(0)
   const [warning, setWarning] = useState<string | null>(null)
+  const [deckTitle, setDeckTitle] = useState<string>('')
   const sessionStartTime = useRef<number>(0)
   const timerInterval = useRef<NodeJS.Timeout | null>(null)
 
@@ -62,7 +63,14 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
       setCards(queueData.cards)
       setStats(queueData.stats)
       setWarning(queueData.warning)
-      
+
+      // Fetch deck info for title
+      const deckRes = await fetch(`/api/decks/${resolvedParams.id}`)
+      if (deckRes.ok) {
+        const deckData = await deckRes.json()
+        setDeckTitle(deckData.deck.title)
+      }
+
       // Start session timer
       sessionStartTime.current = Date.now()
       setCardStartTime(Date.now())
@@ -245,9 +253,17 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link href={`/decks/${resolvedParams.id}`} className="text-primary hover:underline">
-              ← Exit Study
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link href={`/decks/${resolvedParams.id}`} className="text-primary hover:underline">
+                ← Exit Study
+              </Link>
+              {deckTitle && (
+                <div className="text-gray-400">|</div>
+              )}
+              {deckTitle && (
+                <h1 className="text-lg font-semibold text-gray-800">{deckTitle}</h1>
+              )}
+            </div>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,7 +279,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
         </div>
       </nav>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-8">
+      <main className="flex-1 flex flex-col items-center p-8 pt-20">
         {warning && (
           <div className="max-w-2xl w-full mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div className="flex items-start">
