@@ -361,6 +361,14 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                 ))}
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/40 to-transparent pointer-events-none"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <button
+                  onClick={() => setShowCards(true)}
+                  className="btn-primary px-6 py-3 shadow-lg"
+                >
+                  Show the cards
+                </button>
+              </div>
             </div>
           )}
         </div>
