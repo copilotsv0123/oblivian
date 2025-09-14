@@ -42,6 +42,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
   const [showAddCard, setShowAddCard] = useState(false)
   const [similarDecks, setSimilarDecks] = useState<any[]>([])
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
+  const [showCards, setShowCards] = useState(false)
   const [stats, setStats] = useState<DeckStats | null>(null)
   const [cardPerformance, setCardPerformance] = useState<Record<string, {
     difficulty: 'easy' | 'medium' | 'hard' | 'unreviewed'
@@ -263,8 +264,27 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
           </div>
         ) : (
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-primary">Cards</h2>
-            <div className="grid gap-[1px] md:grid-cols-2 lg:grid-cols-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-primary">Cards ({cards.length})</h2>
+              <button
+                onClick={() => setShowCards(!showCards)}
+                className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors"
+              >
+                {showCards ? (
+                  <>
+                    <ChevronUp className="w-5 h-5" />
+                    Hide
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-5 h-5" />
+                    Show
+                  </>
+                )}
+              </button>
+            </div>
+            {showCards && (
+              <div className="grid gap-[1px] md:grid-cols-2 lg:grid-cols-3">
               {cards.map((card, index) => {
                 const perf = cardPerformance[card.id]
 
@@ -334,7 +354,8 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                 )
               })}
             </div>
-          </div>
+          )}
+        </div>
         )}
         {/* Similar Decks Section */}
         {similarDecks.length > 0 && (

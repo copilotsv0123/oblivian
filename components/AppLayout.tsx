@@ -14,6 +14,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [achievementCount, setAchievementCount] = useState<{ earned: number; total: number } | null>(null)
 
   useEffect(() => {
     // Check authentication
@@ -28,6 +29,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
       .then(data => {
         if (data) {
           setUser(data.user)
+          // Fetch achievement counts
+          fetch('/api/achievements')
+            .then(res => res.json())
+            .then(achievementData => {
+              if (achievementData.achievements) {
+                const earned = achievementData.achievements.filter((a: any) => a.unlockedAt).length
+                const total = achievementData.achievements.length
+                setAchievementCount({ earned, total })
+              }
+            })
+            .catch(console.error)
         }
       })
       .finally(() => setLoading(false))
@@ -110,7 +122,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   }`}
                 >
                   <Trophy className="w-4 h-4" />
-                  Achievements
+                  Achievements {achievementCount && `(${achievementCount.earned}/${achievementCount.total})`}
                 </Link>
                 <button
                   onClick={handleRandomStudy}
