@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { authenticateRequest } from '@/lib/auth/middleware'
 import { deckRepository, cardRepository } from '@/lib/repositories'
+import { MAX_CARDS_PER_DECK } from '@/lib/constants'
 
 // MCP Protocol Implementation with SSE Transport
 const PROTOCOL_VERSION = '2024-11-05'
@@ -286,13 +287,13 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             console.log('Cards data:', JSON.stringify(args.cards, null, 2))
 
             try {
-              // Check card count limit (500 cards max per deck)
+              // Check card count limit
               const currentCardCount = await cardRepository.countByDeckId(args.deckId)
               const totalAfterImport = currentCardCount + args.cards.length
 
-              if (totalAfterImport > 500) {
-                const remainingSlots = Math.max(0, 500 - currentCardCount)
-                throw new Error(`Cannot create ${args.cards.length} cards. Deck currently has ${currentCardCount} cards. Maximum is 500 cards per deck. You can add up to ${remainingSlots} more cards.`)
+              if (totalAfterImport > MAX_CARDS_PER_DECK) {
+                const remainingSlots = Math.max(0, MAX_CARDS_PER_DECK - currentCardCount)
+                throw new Error(`Cannot create ${args.cards.length} cards. Deck currently has ${currentCardCount} cards. Maximum is ${MAX_CARDS_PER_DECK} cards per deck. You can add up to ${remainingSlots} more cards.`)
               }
 
               const batchResult = await cardRepository.createBatchWithOwnershipCheck(args.deckId, userId, args.cards)

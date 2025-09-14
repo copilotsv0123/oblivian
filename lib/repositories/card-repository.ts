@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto'
 import { CreateCardInput, UpdateCardInput, Choice } from '@/lib/types/cards'
 import { transformDbCardToApiCard, transformDbCardsToApiCards } from '@/lib/db/mappers'
 import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base-repository'
+import { MAX_CARDS_PER_DECK, MAX_CARDS_PER_BATCH_IMPORT } from '@/lib/constants'
 
 export class CardRepository extends BaseRepository {
   async findByDeckId(deckId: string, limit = 100, offset = 0) {
@@ -118,8 +119,8 @@ export class CardRepository extends BaseRepository {
         throw new Error('bad request: At least one card is required')
       }
 
-      if (cardInputs.length > 100) {
-        throw new Error('bad request: Maximum 100 cards can be imported at once')
+      if (cardInputs.length > MAX_CARDS_PER_BATCH_IMPORT) {
+        throw new Error(`bad request: Maximum ${MAX_CARDS_PER_BATCH_IMPORT} cards can be imported at once`)
       }
 
       // Check deck ownership
@@ -133,13 +134,13 @@ export class CardRepository extends BaseRepository {
         throw new Error('not found: Deck not found')
       }
 
-      // Check card count limit (500 cards max per deck)
+      // Check card count limit
       const currentCardCount = await this.countByDeckId(deckId)
       const totalAfterImport = currentCardCount + cardInputs.length
 
-      if (totalAfterImport > 500) {
-        const remainingSlots = Math.max(0, 500 - currentCardCount)
-        throw new Error(`bad request: Cannot create ${cardInputs.length} cards. Deck currently has ${currentCardCount} cards. Maximum is 500 cards per deck. You can add up to ${remainingSlots} more cards.`)
+      if (totalAfterImport > MAX_CARDS_PER_DECK) {
+        const remainingSlots = Math.max(0, MAX_CARDS_PER_DECK - currentCardCount)
+        throw new Error(`bad request: Cannot create ${cardInputs.length} cards. Deck currently has ${currentCardCount} cards. Maximum is ${MAX_CARDS_PER_DECK} cards per deck. You can add up to ${remainingSlots} more cards.`)
       }
 
       // Validate all cards first

@@ -4,7 +4,7 @@ import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
-import { MoreVertical, Trash2, Edit, ChevronDown, ChevronUp } from 'lucide-react'
+import { MoreVertical, Trash2, Edit, ChevronDown, ChevronUp, Calendar, Trophy, TrendingUp } from 'lucide-react'
 
 interface Card {
   id: string
@@ -23,6 +23,15 @@ interface Deck {
   level: string
 }
 
+interface DeckStats {
+  lastStudyDate: string | null
+  totalSessions: number
+  totalCardsReviewed: number
+  performanceGrade: string | null
+  successRate: number | null
+  reviewCount: number
+}
+
 export default function DeckPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const router = useRouter()
@@ -36,20 +45,31 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
   const [editingCard, setEditingCard] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<{ front: string; back: string; advancedNotes?: string }>({ front: '', back: '' })
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
+  const [stats, setStats] = useState<DeckStats | null>(null)
 
   const fetchDeck = useCallback(async () => {
     try {
-      const res = await fetch(`/api/decks/${resolvedParams.id}`)
-      if (!res.ok) {
-        if (res.status === 401) {
+      const [deckRes, statsRes] = await Promise.all([
+        fetch(`/api/decks/${resolvedParams.id}`),
+        fetch(`/api/decks/${resolvedParams.id}/stats`)
+      ])
+
+      if (!deckRes.ok) {
+        if (deckRes.status === 401) {
           router.push('/login')
           return
         }
         throw new Error('Failed to fetch deck')
       }
-      const data = await res.json()
-      setDeck(data.deck)
-      setCards(data.cards)
+
+      const deckData = await deckRes.json()
+      setDeck(deckData.deck)
+      setCards(deckData.cards)
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json()
+        setStats(statsData.stats)
+      }
     } catch (error) {
       console.error('Error fetching deck:', error)
     } finally {
@@ -86,6 +106,41 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
       return () => document.removeEventListener('click', handleClickOutside)
     }
   }, [showDeckMenu, showCardMenu])
+
+  const formatRelativeTime = (dateString: string | null) => {
+    if (!dateString) return 'Never'
+
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffSeconds = Math.floor(diffMs / 1000)
+    const diffMinutes = Math.floor(diffSeconds / 60)
+    const diffHours = Math.floor(diffMinutes / 60)
+    const diffDays = Math.floor(diffHours / 24)
+    const diffWeeks = Math.floor(diffDays / 7)
+    const diffMonths = Math.floor(diffDays / 30)
+    const diffYears = Math.floor(diffDays / 365)
+
+    if (diffSeconds < 60) return 'Just now'
+    if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
+    if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`
+    if (diffWeeks < 4) return `${diffWeeks} week${diffWeeks !== 1 ? 's' : ''} ago`
+    if (diffMonths < 12) return `${diffMonths} month${diffMonths !== 1 ? 's' : ''} ago`
+    return `${diffYears} year${diffYears !== 1 ? 's' : ''} ago`
+  }
+
+  const getGradeColor = (grade: string) => {
+    switch (grade) {
+      case 'A+': return 'text-green-600'
+      case 'A': return 'text-green-500'
+      case 'B': return 'text-blue-500'
+      case 'C': return 'text-yellow-500'
+      case 'D': return 'text-orange-500'
+      case 'F': return 'text-red-500'
+      default: return 'text-gray-500'
+    }
+  }
 
   const startStudySession = () => {
     router.push(`/study/${resolvedParams.id}?limit=10`)
@@ -175,7 +230,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
               {deck.description && (
                 <p className="text-gray-600 mb-4">{deck.description}</p>
               )}
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-4 mb-4">
                 <span className="px-3 py-1 bg-primary/10 text-primary rounded">
                   {deck.level}
                 </span>
@@ -183,6 +238,56 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                   {cards.length} card{cards.length !== 1 ? 's' : ''}
                 </span>
               </div>
+
+              {/* Study Statistics */}
+              {stats && (
+                <div className="flex flex-wrap gap-6 pt-4 border-t">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <div>
+                      <p className="text-xs text-gray-500">Last studied</p>
+                      <p className="text-sm font-medium">{formatRelativeTime(stats.lastStudyDate)}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-gray-400" />
+                    <div>
+                      <p className="text-xs text-gray-500">Sessions</p>
+                      <p className="text-sm font-medium">{stats.totalSessions}</p>
+                    </div>
+                  </div>
+
+                  {stats.performanceGrade && (
+                    <div className="flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-gray-400" />
+                      <div>
+                        <p className="text-xs text-gray-500">Performance</p>
+                        <p className={`text-sm font-bold ${getGradeColor(stats.performanceGrade)}`}>
+                          Grade {stats.performanceGrade}
+                          {stats.successRate !== null && (
+                            <span className="text-xs font-normal text-gray-500 ml-1">
+                              ({stats.successRate}%)
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {!stats.performanceGrade && stats.reviewCount > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-gray-400" />
+                      <div>
+                        <p className="text-xs text-gray-500">Performance</p>
+                        <p className="text-sm text-gray-400">
+                          {10 - stats.reviewCount} more reviews needed
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="relative">
               <button
