@@ -12,6 +12,7 @@ interface Deck {
   level: string
   language: string
   isPublic: boolean
+  starred: boolean
   createdAt: string
   updatedAt: string
   cardCount?: number
@@ -23,6 +24,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const [showStarredOnly, setShowStarredOnly] = useState(false)
 
   const fetchDecks = useCallback(async () => {
     try {
@@ -40,27 +42,56 @@ export default function DashboardPage() {
     }
   }, [])
 
+  const toggleStar = async (e: React.MouseEvent, deckId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    try {
+      const res = await fetch(`/api/decks/${deckId}/star`, {
+        method: 'POST'
+      })
+      if (!res.ok) {
+        throw new Error('Failed to toggle star')
+      }
+      const data = await res.json()
+
+      // Update both allDecks and decks
+      const updateDecks = (deckList: Deck[]) =>
+        deckList.map(d => d.id === deckId ? { ...d, starred: data.deck.starred } : d)
+
+      setAllDecks(updateDecks)
+      setDecks(updateDecks)
+    } catch (error) {
+      console.error('Error toggling star:', error)
+    }
+  }
+
   useEffect(() => {
     fetchDecks()
   }, [fetchDecks])
 
-  // Filter decks based on search query
+  // Filter decks based on search query and starred filter
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setDecks(allDecks)
-      return
+    let filtered = [...allDecks]
+
+    // Apply starred filter
+    if (showStarredOnly) {
+      filtered = filtered.filter(deck => deck.starred)
     }
 
-    const query = searchQuery.toLowerCase()
-    const filtered = allDecks.filter(deck =>
-      deck.title.toLowerCase().includes(query) ||
-      (deck.description && deck.description.toLowerCase().includes(query)) ||
-      deck.level.toLowerCase().includes(query) ||
-      deck.language.toLowerCase().includes(query)
-    )
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(deck =>
+        deck.title.toLowerCase().includes(query) ||
+        (deck.description && deck.description.toLowerCase().includes(query)) ||
+        deck.level.toLowerCase().includes(query) ||
+        deck.language.toLowerCase().includes(query)
+      )
+    }
 
     setDecks(filtered)
-  }, [allDecks, searchQuery])
+  }, [allDecks, searchQuery, showStarredOnly])
 
   return (
     <AppLayout>
@@ -74,25 +105,27 @@ export default function DashboardPage() {
           <div className="flex items-center gap-4 flex-1">
             <h2 className="text-3xl font-bold text-primary">Decks</h2>
             {!loading && allDecks.length > 0 && (
-              <div className="flex-1 max-w-md">
+              <div className="flex items-center gap-4 flex-1 max-w-2xl">
                 <input
                   type="text"
                   placeholder="Search decks..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input w-full"
+                  className="input flex-1"
                 />
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showStarredOnly}
+                    onChange={(e) => setShowStarredOnly(e.target.checked)}
+                    className="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 focus:ring-2"
+                  />
+                  <span className="text-sm text-gray-600">My favorites only</span>
+                </label>
               </div>
             )}
           </div>
         </div>
-
-        {/* Results count */}
-        {!loading && searchQuery && (
-          <div className="mb-4 text-sm text-gray-600">
-            Showing {decks.length} of {allDecks.length} decks
-          </div>
-        )}
 
         {loading ? (
           <div className="text-center py-12">
@@ -132,10 +165,34 @@ export default function DashboardPage() {
               <Link
                 key={deck.id}
                 href={`/decks/${deck.id}`}
-                className={`card hover:shadow-lg hover:scale-[1.02] hover:border-indigo-500 hover:card-hover-gradient hover:z-10 transition-all duration-200 relative group ${
-                  index % 2 === 0 ? 'hover:rotate-1' : 'hover:-rotate-1'
-                }`}
+                className={`card hover:shadow-lg hover:scale-[1.02] hover:z-10 transition-all duration-200 relative group ${
+                  deck.starred
+                    ? 'bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-100 legendary-border'
+                    : 'hover:border-indigo-500 hover:card-hover-gradient'
+                } ${index % 2 === 0 ? 'hover:rotate-1' : 'hover:-rotate-1'}`}
               >
+                {/* Star button */}
+                <button
+                  onClick={(e) => toggleStar(e, deck.id)}
+                  className={`absolute top-2 right-2 z-20 p-1.5 rounded-lg transition-all duration-200 ${
+                    deck.starred
+                      ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-100 opacity-100'
+                      : 'text-gray-400 hover:text-yellow-500 hover:bg-gray-100 opacity-0 group-hover:opacity-100'
+                  }`}
+                  aria-label={deck.starred ? 'Unstar deck' : 'Star deck'}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill={deck.starred ? 'currentColor' : 'none'}
+                    stroke="currentColor"
+                    strokeWidth={deck.starred ? 0 : 1.5}
+                  >
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                </button>
+
                 <div className="transition-all duration-200 group-hover:blur-[1px]">
                   <h3 className="text-xl font-semibold text-primary mb-2">
                     {deck.title}

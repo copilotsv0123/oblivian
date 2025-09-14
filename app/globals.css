@@ -86,6 +86,16 @@
     @apply bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50;
   }
 
+  /* Legendary border effect */
+  .legendary-border {
+    border: 2px solid transparent;
+    background-image:
+      linear-gradient(white, white),
+      linear-gradient(90deg, #fbbf24, #fde68a, #fef3c7, #fde68a, #fbbf24);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+
   /* Form Components */
   .label {
     @apply text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 block mb-2;

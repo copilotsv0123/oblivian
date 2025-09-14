@@ -16,6 +16,7 @@ export class DeckRepository extends BaseRepository {
           language: decks.language,
           isPublic: decks.isPublic,
           autoRevealSeconds: decks.autoRevealSeconds,
+          starred: decks.starred,
           createdAt: decks.createdAt,
           updatedAt: decks.updatedAt,
           cardCount: sql<number>`(SELECT COUNT(*) FROM cards WHERE deck_id = decks.id)`.as('card_count')
@@ -46,6 +47,7 @@ export class DeckRepository extends BaseRepository {
           language: decks.language,
           isPublic: decks.isPublic,
           autoRevealSeconds: decks.autoRevealSeconds,
+          starred: decks.starred,
           createdAt: decks.createdAt,
           updatedAt: decks.updatedAt,
           cardCount: sql<number>`(SELECT COUNT(*) FROM cards WHERE deck_id = decks.id)`.as('card_count')
@@ -249,10 +251,10 @@ export class DeckRepository extends BaseRepository {
   }
 
   async getStats(userId: string, deckId?: string) {
-    const whereCondition = deckId 
+    const whereCondition = deckId
       ? and(eq(decks.ownerUserId, userId), eq(decks.id, deckId))
       : eq(decks.ownerUserId, userId)
-    
+
     const query = db
       .select({
         totalDecks: sql<number>`COUNT(DISTINCT decks.id)`,
@@ -261,8 +263,38 @@ export class DeckRepository extends BaseRepository {
       .from(decks)
       .leftJoin(cards, eq(cards.deckId, decks.id))
       .where(whereCondition)
-    
+
     return query.then(res => res[0] || null)
+  }
+
+  async toggleStar(deckId: string, userId: string) {
+    try {
+      this.validateRequiredFields({ deckId, userId }, ['deckId', 'userId'])
+
+      // First check ownership
+      const existingDeck = await db
+        .select({ starred: decks.starred })
+        .from(decks)
+        .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
+        .then(res => res[0] || null)
+
+      if (!existingDeck) {
+        throw new Error('not found: Deck not found')
+      }
+
+      const [updated] = await db
+        .update(decks)
+        .set({
+          starred: !existingDeck.starred,
+          updatedAt: new Date()
+        })
+        .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
+        .returning()
+
+      return updated
+    } catch (error) {
+      this.handleError(error, 'toggleStar')
+    }
   }
 }
 
