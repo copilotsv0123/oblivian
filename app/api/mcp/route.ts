@@ -318,15 +318,30 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             }
 
           case 'list_cards':
+            if (!args.deckId) {
+              throw new Error('deckId is required for list_cards')
+            }
+
+            // Verify deck exists and user has access
+            const deckForCards = await deckRepository.findById(args.deckId, userId)
+            if (!deckForCards) {
+              throw new Error(`Deck not found: ${args.deckId}`)
+            }
+
             const deckCards = await cardRepository.findByDeckId(args.deckId)
-            
+
             return {
               jsonrpc: '2.0',
               id: request.id,
               result: {
                 content: [{
                   type: 'text',
-                  text: JSON.stringify({ cards: deckCards }, null, 2),
+                  text: JSON.stringify({
+                    deckId: args.deckId,
+                    deckTitle: deckForCards.title,
+                    cardCount: deckCards.length,
+                    cards: deckCards
+                  }, null, 2),
                 }],
               },
             }
@@ -415,7 +430,7 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             if (!deckToUpdate) {
               throw new Error(`Deck with ID ${args.deckId} not found or access denied`)
             }
-            
+
             // Prepare update data
             const updateData: any = {}
             if (args.title !== undefined) updateData.title = args.title
@@ -423,19 +438,23 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             if (args.level !== undefined) updateData.level = args.level
             if (args.language !== undefined) updateData.language = args.language
             if (args.isPublic !== undefined) updateData.isPublic = args.isPublic
-            
+            if (args.autoRevealSeconds !== undefined) updateData.autoRevealSeconds = args.autoRevealSeconds
+
             const updatedDeck = await deckRepository.updateWithOwnershipCheck(args.deckId, userId, updateData)
-            
+
+            // Fetch the deck again to get the starred status
+            const deckWithStarred = await deckRepository.findById(args.deckId, userId)
+
             return {
               jsonrpc: '2.0',
               id: request.id,
               result: {
                 content: [{
                   type: 'text',
-                  text: JSON.stringify({ 
-                    updated: true, 
-                    deckId: args.deckId, 
-                    deck: updatedDeck 
+                  text: JSON.stringify({
+                    updated: true,
+                    deckId: args.deckId,
+                    deck: deckWithStarred || updatedDeck
                   }, null, 2),
                 }],
               },
