@@ -7,15 +7,15 @@ export const GET = withApiHandler(async ({ user }: ApiContext, routeContext: any
   const { params } = routeContext as { params: Promise<{ id: string }> }
   const { id: deckId } = await params
 
-  // Check if user owns the deck
+  // Check if deck exists (allow any user to view any deck)
   const deck = await db
     .select()
     .from(decks)
-    .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, user.id)))
+    .where(eq(decks.id, deckId))
     .then(res => res[0] || null)
 
   if (!deck) {
-    throw new Error('not found: Deck not found or unauthorized')
+    throw new Error('not found: Deck not found')
   }
 
   // Get all cards in the deck

@@ -3,8 +3,9 @@ import { deckRepository } from '@/lib/repositories'
 import { trackDeckCreated } from '@/lib/achievements/tracker'
 
 export const GET = withApiHandler(async ({ user }: ApiContext) => {
-  const userDecks = await deckRepository.findByUserId(user.id, true)
-  return { decks: userDecks }
+  // Show all decks to all users (simulating all are public)
+  const allDecks = await deckRepository.findAll(true)
+  return { decks: allDecks }
 })
 
 export const POST = withApiHandler(async ({ user, request }: ApiContext) => {

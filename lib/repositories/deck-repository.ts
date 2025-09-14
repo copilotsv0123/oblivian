@@ -4,6 +4,35 @@ import { eq, and, desc, sql } from 'drizzle-orm'
 import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base-repository'
 
 export class DeckRepository extends BaseRepository {
+  async findAll(includeCardCount = false) {
+    if (includeCardCount) {
+      const query = db
+        .select({
+          id: decks.id,
+          ownerUserId: decks.ownerUserId,
+          title: decks.title,
+          description: decks.description,
+          level: decks.level,
+          language: decks.language,
+          isPublic: decks.isPublic,
+          createdAt: decks.createdAt,
+          updatedAt: decks.updatedAt,
+          cardCount: sql<number>`(SELECT COUNT(*) FROM cards WHERE deck_id = decks.id)`.as('card_count')
+        })
+        .from(decks)
+        .orderBy(desc(decks.updatedAt))
+
+      return query
+    }
+
+    const query = db
+      .select()
+      .from(decks)
+      .orderBy(desc(decks.updatedAt))
+
+    return query
+  }
+
   async findByUserId(userId: string, includeCardCount = false) {
     if (includeCardCount) {
       const query = db
@@ -22,16 +51,16 @@ export class DeckRepository extends BaseRepository {
         .from(decks)
         .where(eq(decks.ownerUserId, userId))
         .orderBy(desc(decks.updatedAt))
-      
+
       return query
     }
-    
+
     const query = db
       .select()
       .from(decks)
       .where(eq(decks.ownerUserId, userId))
       .orderBy(desc(decks.updatedAt))
-    
+
     return query
   }
 
@@ -57,16 +86,14 @@ export class DeckRepository extends BaseRepository {
   async validateOwnership(deckId: string, userId: string): Promise<boolean> {
     try {
       this.validateRequiredFields({ deckId, userId }, ['deckId', 'userId'])
-      
+
+      // Allow any user to access any deck (simulating all decks are public)
       const deck = await db
         .select({ id: decks.id })
         .from(decks)
-        .where(and(
-          eq(decks.id, deckId),
-          eq(decks.ownerUserId, userId)
-        ))
+        .where(eq(decks.id, deckId))
         .then(res => res[0] || null)
-      
+
       return !!deck
     } catch (error) {
       this.handleError(error, 'validateOwnership')
@@ -76,11 +103,12 @@ export class DeckRepository extends BaseRepository {
   async findByIdWithCards(deckId: string, userId: string) {
     try {
       this.validateRequiredFields({ deckId, userId }, ['deckId', 'userId'])
-      
+
+      // Allow any user to view any deck (simulating all decks are public)
       const deck = await db
         .select()
         .from(decks)
-        .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
+        .where(eq(decks.id, deckId))
         .then(res => res[0] || null)
 
       if (!deck) {
@@ -91,7 +119,7 @@ export class DeckRepository extends BaseRepository {
         .select()
         .from(cards)
         .where(eq(cards.deckId, deckId))
-        
+
 
       return { deck, cards: deckCards }
     } catch (error) {
