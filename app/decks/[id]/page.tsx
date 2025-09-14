@@ -242,8 +242,17 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
         ) : (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-primary">Cards</h2>
-            {cards.map((card) => (
-              <div key={card.id} className="card">
+            {cards.map((card, index) => (
+              <div
+                key={card.id}
+                className="card cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => {
+                  if (editingCard !== card.id) {
+                    setEditingCard(card.id)
+                    setEditValues({ front: card.front, back: card.back || '', advancedNotes: card.advancedNotes || '' })
+                  }
+                }}
+              >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     {editingCard === card.id ? (
@@ -285,25 +294,29 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                       </div>
                     ) : (
                       <>
-                        <p 
-                          className="text-primary font-medium mt-1 cursor-pointer hover:text-primary/80"
-                          onClick={() => {
-                            setEditingCard(card.id)
-                            setEditValues({ front: card.front, back: card.back || '', advancedNotes: card.advancedNotes || '' })
-                          }}
-                        >
+                        <p className="text-primary font-medium mt-1">
                           {card.front}
                         </p>
                         {card.back && (
-                          <p 
-                            className="text-gray-600 mt-2 cursor-pointer hover:text-gray-500"
-                            onClick={() => {
-                              setEditingCard(card.id)
-                              setEditValues({ front: card.front, back: card.back || '' })
-                            }}
-                          >
+                          <p className="text-gray-600 mt-2">
                             {card.back}
+                            {card.advancedNotes && (
+                              <span className="inline-flex items-center gap-1 ml-2 text-xs text-indigo-500">
+                                <span>more</span>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </span>
+                            )}
                           </p>
+                        )}
+                        {!card.back && card.advancedNotes && (
+                          <div className="flex items-center gap-1 mt-2 text-xs text-indigo-500">
+                            <span>more</span>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
                         )}
                       </>
                     )}
@@ -321,7 +334,8 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                     {showCardMenu === card.id && (
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation()
                             setEditingCard(card.id)
                             setEditValues({ front: card.front, back: card.back || '', advancedNotes: card.advancedNotes || '' })
                             setShowCardMenu(null)
@@ -332,7 +346,10 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                           Edit Card
                         </button>
                         <button
-                          onClick={() => handleDeleteCard(card.id)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteCard(card.id)
+                          }}
                           className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 text-red-600"
                         >
                           <Trash2 className="w-4 h-4" />

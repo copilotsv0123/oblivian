@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { users, type User, type NewUser } from '@/lib/db/schema'
+import { users, type User, type NewUser } from '@/lib/db'
 import { eq } from 'drizzle-orm'
 import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base-repository'
 
@@ -20,7 +20,7 @@ export class UserRepository extends BaseRepository {
         .select()
         .from(users)
         .where(eq(users.id, userId))
-        .get()
+        .then(res => res[0] || null)
       
       return user || null
     } catch (error) {
@@ -36,7 +36,7 @@ export class UserRepository extends BaseRepository {
         .select()
         .from(users)
         .where(eq(users.email, email))
-        .get()
+        .then(res => res[0] || null)
       
       return user || null
     } catch (error) {

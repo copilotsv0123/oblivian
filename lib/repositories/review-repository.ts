@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { reviews, type Review, type NewReview } from '@/lib/db/schema'
+import { reviews, type Review, type NewReview } from '@/lib/db'
 import { eq, and, desc, gte, lte, sql } from 'drizzle-orm'
 import { BaseRepository, CreateResult, PaginatedResult } from './base-repository'
 
@@ -37,7 +37,7 @@ export class ReviewRepository extends BaseRepository {
         .select()
         .from(reviews)
         .where(eq(reviews.id, reviewId))
-        .get()
+        .then(res => res[0] || null)
       
       return review || null
     } catch (error) {
@@ -56,7 +56,7 @@ export class ReviewRepository extends BaseRepository {
         .orderBy(desc(reviews.reviewedAt))
         .limit(limit)
         .offset(offset)
-        .all()
+        
       
       return cardReviews
     } catch (error) {
@@ -75,7 +75,7 @@ export class ReviewRepository extends BaseRepository {
         .orderBy(desc(reviews.reviewedAt))
         .limit(limit)
         .offset(offset)
-        .all()
+        
       
       return userReviews
     } catch (error) {
@@ -95,7 +95,7 @@ export class ReviewRepository extends BaseRepository {
           eq(reviews.cardId, cardId)
         ))
         .orderBy(desc(reviews.reviewedAt))
-        .all()
+        
       
       return userCardReviews
     } catch (error) {
@@ -117,7 +117,7 @@ export class ReviewRepository extends BaseRepository {
         ))
         .orderBy(reviews.scheduledAt)
         .limit(limit)
-        .all()
+        
       
       return dueReviews
     } catch (error) {
@@ -140,7 +140,7 @@ export class ReviewRepository extends BaseRepository {
           gte(reviews.reviewedAt, cutoffDate)
         ))
         .orderBy(desc(reviews.reviewedAt))
-        .all()
+        
       
       return recentReviews
     } catch (error) {
@@ -201,7 +201,7 @@ export class ReviewRepository extends BaseRepository {
         })
         .from(reviews)
         .where(whereCondition)
-        .get()
+        .then(res => res[0] || null)
 
       // Get rating distribution
       const ratingDistribution = await db
@@ -212,7 +212,7 @@ export class ReviewRepository extends BaseRepository {
         .from(reviews)
         .where(whereCondition)
         .groupBy(reviews.rating)
-        .all()
+        
 
       const reviewsByRating: Record<string, number> = {}
       ratingDistribution.forEach(row => {
@@ -259,7 +259,7 @@ export class ReviewRepository extends BaseRepository {
         ))
         .groupBy(sql`DATE(reviewed_at)`)
         .orderBy(sql`DATE(reviewed_at)`)
-        .all()
+        
 
       const dates = reviewDates.map(row => row.reviewDate)
       

@@ -1,10 +1,10 @@
 import type { Config } from 'drizzle-kit'
 
 export default {
-  dialect: 'sqlite',
-  schema: './lib/db/schema.ts',
-  out: './drizzle',
+  dialect: 'postgresql',
+  schema: './lib/db/schema-postgres.ts',
+  out: './drizzle-postgres',
   dbCredentials: {
-    url: './data/oblivian.db',
+    url: process.env.DATABASE_URL!,
   },
 } satisfies Config

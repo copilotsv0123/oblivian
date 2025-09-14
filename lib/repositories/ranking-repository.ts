@@ -58,7 +58,7 @@ export class RankingRepository extends BaseRepository {
         })
         .from(decks)
         .where(eq(decks.isPublic, true))
-        .all()
+        
       
       return deckStats.map(stat => ({
         deckId: stat.deckId,
@@ -88,7 +88,7 @@ export class RankingRepository extends BaseRepository {
             eq(deckRankings.window, window)
           )
         )
-        .get()
+        .then(res => res[0] || null)
     } catch (error) {
       throw this.handleError(error, 'findRanking')
     }
@@ -164,7 +164,7 @@ export class RankingRepository extends BaseRepository {
         .where(eq(deckRankings.window, window))
         .orderBy(asc(deckRankings.rank))
         .limit(limit)
-        .all()
+        
       
       return rankings.map(r => ({
         ...r.deck,
@@ -192,7 +192,7 @@ export class RankingRepository extends BaseRepository {
         .select()
         .from(deckRankings)
         .where(eq(deckRankings.deckId, deckId))
-        .all()
+        
       
       const result: Record<string, any> = {}
       
@@ -223,7 +223,7 @@ export class RankingRepository extends BaseRepository {
         .select()
         .from(decks)
         .where(eq(decks.id, deckId))
-        .get()
+        .then(res => res[0] || null)
       
       return deck?.isPublic || false
     } catch (error) {

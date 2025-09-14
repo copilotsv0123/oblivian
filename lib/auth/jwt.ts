@@ -8,7 +8,7 @@ function getJWTSecret() {
   return new TextEncoder().encode(config.JWT_SECRET)
 }
 
-export async function createToken(user: User) {
+export async function createToken(user: Pick<User, 'id' | 'email'>) {
   const secret = getJWTSecret()
   
   const token = await new SignJWT({ 

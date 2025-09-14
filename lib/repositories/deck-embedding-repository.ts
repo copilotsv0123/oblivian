@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
-import { deckEmbeddings, decks, cards } from '@/lib/db/schema'
-import type { DeckEmbedding, NewDeckEmbedding } from '@/lib/db/schema'
+import { deckEmbeddings, decks, cards } from '@/lib/db'
+import type { DeckEmbedding, NewDeckEmbedding } from '@/lib/db'
 import { eq, ne, and } from 'drizzle-orm'
 import { BaseRepository } from './base-repository'
 
@@ -23,7 +23,7 @@ export class DeckEmbeddingRepository extends BaseRepository {
         .select()
         .from(deckEmbeddings)
         .where(eq(deckEmbeddings.deckId, deckId))
-        .get()
+        .then(res => res[0] || null)
       
       return embedding || null
     } catch (error) {
@@ -81,7 +81,7 @@ export class DeckEmbeddingRepository extends BaseRepository {
             eq(decks.isPublic, true)
           )
         )
-        .all()
+        
       
       // Calculate similarities
       const similarities = allEmbeddings.map(item => {
@@ -91,7 +91,7 @@ export class DeckEmbeddingRepository extends BaseRepository {
           id: item.deck.id,
           title: item.deck.title,
           description: item.deck.description,
-          level: item.deck.level,
+          level: item.deck.level as 'simple' | 'mid' | 'expert',
           language: item.deck.language,
           isPublic: item.deck.isPublic,
           similarity,
@@ -116,7 +116,7 @@ export class DeckEmbeddingRepository extends BaseRepository {
         .select()
         .from(decks)
         .where(eq(decks.id, deckId))
-        .get()
+        .then(res => res[0] || null)
       
       if (!deck) return ''
       
@@ -126,7 +126,7 @@ export class DeckEmbeddingRepository extends BaseRepository {
         .from(cards)
         .where(eq(cards.deckId, deckId))
         .limit(10)
-        .all()
+        
       
       // Combine text for embedding
       const combinedText = [
@@ -150,7 +150,7 @@ export class DeckEmbeddingRepository extends BaseRepository {
         })
         .from(decks)
         .where(eq(decks.isPublic, true))
-        .all()
+        
       
       return publicDecks
     } catch (error) {

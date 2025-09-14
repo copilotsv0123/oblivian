@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { cards, reviews, decks, type Card, type NewCard } from '@/lib/db/schema'
+import { cards, reviews, decks, type Card, type NewCard } from '@/lib/db'
 import { eq, and, desc, inArray, lte, isNull } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 import { CreateCardInput, UpdateCardInput, Choice } from '@/lib/types/cards'
@@ -15,7 +15,7 @@ export class CardRepository extends BaseRepository {
       .orderBy(desc(cards.createdAt))
       .limit(limit)
       .offset(offset)
-      .all()
+      
     
     return transformDbCardsToApiCards(dbCards)
   }
@@ -25,7 +25,7 @@ export class CardRepository extends BaseRepository {
       .select()
       .from(cards)
       .where(eq(cards.id, cardId))
-      .get()
+      .then(res => res[0] || null)
     
     return card ? transformDbCardToApiCard(card) : null
   }
@@ -37,7 +37,7 @@ export class CardRepository extends BaseRepository {
       .select()
       .from(cards)
       .where(inArray(cards.id, cardIds))
-      .all()
+      
     
     return transformDbCardsToApiCards(dbCards)
   }
@@ -70,15 +70,15 @@ export class CardRepository extends BaseRepository {
 
   async createBatch(deckId: string, cardInputs: Omit<CreateCardInput, 'deckId'>[]) {
     // Use a transaction for batch insert
-    const createdCards = await db.transaction((tx) => {
-      const batchCreated: Card[] = []
+    const createdCards = await db.transaction(async (tx) => {
+      const batchCreated = []
       for (const input of cardInputs) {
         const cardId = randomUUID()
         const fullInput = { ...input, deckId }
-        
+
         this.validateCard(fullInput)
-        
-        const newCard = tx.insert(cards).values({
+
+        const [newCard] = await tx.insert(cards).values({
           id: cardId,
           deckId,
           type: fullInput.type,
@@ -87,8 +87,8 @@ export class CardRepository extends BaseRepository {
           choices: fullInput.choices ? JSON.stringify(fullInput.choices) : null,
           explanation: fullInput.explanation || null,
           advancedNotes: fullInput.advancedNotes || null,
-        }).returning().get()
-        
+        }).returning()
+
         batchCreated.push(newCard)
       }
       return batchCreated
@@ -118,7 +118,7 @@ export class CardRepository extends BaseRepository {
         .select()
         .from(decks)
         .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
-        .get()
+        .then(res => res[0] || null)
 
       if (!deck) {
         throw new Error('not found: Deck not found')
@@ -143,13 +143,13 @@ export class CardRepository extends BaseRepository {
       let createdCards: Card[] = []
       
       // Use a transaction for batch insert
-      createdCards = await db.transaction((tx) => {
-        const batchCreated: Card[] = []
+      createdCards = await db.transaction(async (tx) => {
+        const batchCreated = []
         for (const input of cardInputs) {
           const cardId = randomUUID()
           const fullInput = { ...input, deckId }
-          
-          const newCard = tx.insert(cards).values({
+
+          const [newCard] = await tx.insert(cards).values({
             id: cardId,
             deckId,
             type: fullInput.type,
@@ -158,8 +158,8 @@ export class CardRepository extends BaseRepository {
             choices: fullInput.choices ? JSON.stringify(fullInput.choices) : null,
             explanation: fullInput.explanation || null,
             advancedNotes: fullInput.advancedNotes || null,
-          }).returning().get()
-          
+          }).returning()
+
           batchCreated.push(newCard)
         }
         return batchCreated
@@ -178,7 +178,7 @@ export class CardRepository extends BaseRepository {
   }
 
   async update(cardId: string, input: UpdateCardInput) {
-    const updateData: any = {}
+    const updateData: Partial<typeof cards.$inferInsert> = {}
 
     if (input.type !== undefined) updateData.type = input.type
     if (input.front !== undefined) updateData.front = input.front
@@ -238,7 +238,7 @@ export class CardRepository extends BaseRepository {
         )
         .orderBy(reviews.scheduledAt)
         .limit(limit)
-        .all()
+        
 
       // Get new cards (cards that have never been reviewed by this user)
       const newCards = await db
@@ -255,7 +255,7 @@ export class CardRepository extends BaseRepository {
           )
         )
         .limit(Math.max(0, limit - dueReviews.length))
-        .all()
+        
 
       return {
         due: dueReviews.map(r => r.cardId),
@@ -278,7 +278,7 @@ export class CardRepository extends BaseRepository {
         .from(cards)
         .innerJoin(decks, eq(cards.deckId, decks.id))
         .where(and(eq(cards.id, cardId), eq(decks.ownerUserId, userId)))
-        .get()
+        .then(res => res[0] || null)
 
       if (!result) {
         return null
@@ -306,7 +306,7 @@ export class CardRepository extends BaseRepository {
         .from(cards)
         .innerJoin(decks, eq(cards.deckId, decks.id))
         .where(and(eq(cards.id, cardId), eq(decks.ownerUserId, userId)))
-        .get()
+        .then(res => res[0] || null)
 
       if (!existingCard) {
         throw new Error('not found: Card not found')
@@ -345,7 +345,7 @@ export class CardRepository extends BaseRepository {
         .from(cards)
         .innerJoin(decks, eq(cards.deckId, decks.id))
         .where(and(eq(cards.id, cardId), eq(decks.ownerUserId, userId)))
-        .get()
+        .then(res => res[0] || null)
 
       if (!existingCard) {
         throw new Error('not found: Card not found')
@@ -387,7 +387,7 @@ export class CardRepository extends BaseRepository {
           inArray(cards.id, cardIds),
           eq(decks.ownerUserId, userId)
         ))
-        .all()
+        
 
       const foundCardIds = existingCards.map(c => c.cardId)
       const notFoundIds = cardIds.filter(id => !foundCardIds.includes(id))
@@ -405,7 +405,7 @@ export class CardRepository extends BaseRepository {
       }
 
       // Delete only the found cards in a transaction
-      await db.transaction((tx) => {
+      await db.transaction(async (tx) => {
         return tx.delete(cards).where(inArray(cards.id, foundCardIds))
       })
       
@@ -422,6 +422,107 @@ export class CardRepository extends BaseRepository {
       }
     } catch (error) {
       this.handleError(error, 'deleteBatchWithOwnershipCheck')
+    }
+  }
+
+  async updateBatchWithOwnershipCheck(
+    userId: string,
+    updates: Array<{
+      cardId: string,
+      front?: string,
+      back?: string,
+      choices?: any,
+      explanation?: string,
+      advancedNotes?: string
+    }>
+  ) {
+    try {
+      this.validateRequiredFields({ userId }, ['userId'])
+
+      if (!updates || !Array.isArray(updates) || updates.length === 0) {
+        throw new Error('bad request: updates array is required and cannot be empty')
+      }
+
+      if (updates.length > 100) {
+        throw new Error('bad request: Maximum 100 cards can be updated at once')
+      }
+
+      // Validate all updates have cardId
+      updates.forEach((update, index) => {
+        if (!update.cardId) {
+          throw new Error(`bad request: cardId is required for update at index ${index}`)
+        }
+      })
+
+      const cardIds = updates.map(u => u.cardId)
+
+      // Check ownership for all cards
+      const existingCards = await db
+        .select({
+          cardId: cards.id,
+          deckId: cards.deckId,
+        })
+        .from(cards)
+        .innerJoin(decks, eq(cards.deckId, decks.id))
+        .where(and(
+          inArray(cards.id, cardIds),
+          eq(decks.ownerUserId, userId)
+        ))
+        
+
+      const foundCardIds = existingCards.map(c => c.cardId)
+      const notFoundIds = cardIds.filter(id => !foundCardIds.includes(id))
+
+      if (foundCardIds.length === 0) {
+        return {
+          success: true,
+          updatedCount: 0,
+          updatedCards: [],
+          skippedIds: cardIds,
+          message: 'No cards found to update (not found or access denied)',
+        }
+      }
+
+      const updatedCards: ReturnType<typeof transformDbCardToApiCard>[] = []
+
+      // Update cards in a transaction
+      await db.transaction(async (tx) => {
+        for (const update of updates) {
+          if (foundCardIds.includes(update.cardId)) {
+            const updateData: Partial<typeof cards.$inferInsert> = {}
+
+            if (update.front !== undefined) updateData.front = update.front
+            if (update.back !== undefined) updateData.back = update.back
+            if (update.choices !== undefined) updateData.choices = typeof update.choices === 'string' ? update.choices : JSON.stringify(update.choices)
+            if (update.explanation !== undefined) updateData.explanation = update.explanation
+            if (update.advancedNotes !== undefined) updateData.advancedNotes = update.advancedNotes
+
+            if (Object.keys(updateData).length > 0) {
+              updateData.updatedAt = new Date()
+
+              const [updatedCard] = await tx
+                .update(cards)
+                .set(updateData)
+                .where(eq(cards.id, update.cardId))
+                .returning()
+
+              updatedCards.push(transformDbCardToApiCard(updatedCard))
+            }
+          }
+        }
+      })
+
+      return {
+        success: true,
+        updatedCount: updatedCards.length,
+        updatedCards,
+        skippedIds: notFoundIds.length > 0 ? notFoundIds : undefined,
+        message: notFoundIds.length > 0
+          ? `Updated ${updatedCards.length} cards, skipped ${notFoundIds.length} (not found or access denied)`
+          : undefined,
+      }
+    } catch (error) {
+      this.handleError(error, 'updateBatchWithOwnershipCheck')
     }
   }
 

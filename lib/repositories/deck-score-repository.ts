@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
-import { deckScores, reviews, cards } from '@/lib/db/schema'
-import type { DeckScore, NewDeckScore } from '@/lib/db/schema'
+import { deckScores, reviews, cards } from '@/lib/db'
+import type { DeckScore, NewDeckScore } from '@/lib/db'
 import { eq, and, sql, gte } from 'drizzle-orm'
 import { BaseRepository, CreateResult } from './base-repository'
 
@@ -34,7 +34,7 @@ export class DeckScoreRepository extends BaseRepository {
             eq(deckScores.deckId, deckId)
           )
         )
-        .all()
+        
 
       // Convert to display format
       const scoreMap: Record<string, string> = {}
@@ -83,7 +83,7 @@ export class DeckScoreRepository extends BaseRepository {
             gte(reviews.reviewedAt, startDate)
           )
         )
-        .get()
+        .then(res => res[0] || null)
 
       return {
         totalReviews: stats?.totalReviews || 0,
@@ -145,7 +145,7 @@ export class DeckScoreRepository extends BaseRepository {
             eq(deckScores.window, 'd30')
           )
         )
-        .get()
+        .then(res => res[0] || null)
 
       if (existingScore) {
         const newAccuracy = (existingScore.accuracyPct * 0.9 + accuracyScore * 0.1)
@@ -193,7 +193,7 @@ export class DeckScoreRepository extends BaseRepository {
             gte(reviews.reviewedAt, today)
           )
         )
-        .get()
+        .then(res => res[0] || null)
 
       return todayReviews?.count || 0
     } catch (error) {
@@ -221,7 +221,7 @@ export class DeckScoreRepository extends BaseRepository {
             gte(reviews.reviewedAt, weekAgo)
           )
         )
-        .get()
+        .then(res => res[0] || null)
 
       return weekStats?.avgDaily || 0
     } catch (error) {

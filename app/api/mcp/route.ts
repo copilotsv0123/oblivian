@@ -143,6 +143,31 @@ const TOOLS = [
     },
   },
   {
+    name: 'update_cards_batch',
+    description: 'Update multiple flashcards at once',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cards: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              cardId: { type: 'string', description: 'ID of the card to update' },
+              front: { type: 'string', description: 'New front content' },
+              back: { type: 'string', description: 'New back content' },
+              choices: { type: 'string', description: 'New choices for multiple choice cards' },
+              explanation: { type: 'string', description: 'New explanation' },
+              advancedNotes: { type: 'string', description: 'Advanced notes with deeper insights' },
+            },
+            required: ['cardId'],
+          },
+        },
+      },
+      required: ['cards'],
+    },
+  },
+  {
     name: 'update_deck',
     description: 'Update a flashcard deck properties',
     inputSchema: {
@@ -330,8 +355,28 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
               },
             }
 
+          case 'update_cards_batch':
+            const batchUpdateResult = await cardRepository.updateBatchWithOwnershipCheck(userId, args.cards)
+
+            return {
+              jsonrpc: '2.0',
+              id: request.id,
+              result: {
+                content: [{
+                  type: 'text',
+                  text: JSON.stringify({
+                    updated: batchUpdateResult.success,
+                    count: batchUpdateResult.updatedCount,
+                    updatedCards: batchUpdateResult.updatedCards,
+                    skippedIds: batchUpdateResult.skippedIds,
+                    message: batchUpdateResult.message,
+                  }, null, 2),
+                }],
+              },
+            }
+
           case 'update_card':
-            const cardUpdateData: any = {}
+            const cardUpdateData: Record<string, any> = {}
             if (args.front !== undefined) cardUpdateData.front = args.front
             if (args.back !== undefined) cardUpdateData.back = args.back
             if (args.choices !== undefined) cardUpdateData.choices = args.choices

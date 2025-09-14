@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { apiTokens, type ApiToken, type NewApiToken } from '@/lib/db/schema'
+import { apiTokens, type ApiToken, type NewApiToken } from '@/lib/db'
 import { eq, and, lt } from 'drizzle-orm'
 import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base-repository'
 
@@ -22,7 +22,7 @@ export class ApiTokenRepository extends BaseRepository {
         .select()
         .from(apiTokens)
         .where(eq(apiTokens.id, tokenId))
-        .get()
+        .then(res => res[0] || null)
       
       return token || null
     } catch (error) {
@@ -38,7 +38,7 @@ export class ApiTokenRepository extends BaseRepository {
         .select()
         .from(apiTokens)
         .where(eq(apiTokens.token, token))
-        .get()
+        .then(res => res[0] || null)
       
       return apiToken || null
     } catch (error) {
@@ -54,7 +54,7 @@ export class ApiTokenRepository extends BaseRepository {
         .select()
         .from(apiTokens)
         .where(eq(apiTokens.userId, userId))
-        .all()
+        
       
       return tokens
     } catch (error) {
@@ -78,7 +78,7 @@ export class ApiTokenRepository extends BaseRepository {
         })
         .from(apiTokens)
         .where(eq(apiTokens.userId, userId))
-        .all()
+        
       
       // Show only first 8 and last 4 characters of token
       const tokensWithPreview = tokens.map(token => ({
@@ -113,7 +113,7 @@ export class ApiTokenRepository extends BaseRepository {
             // Note: SQLite stores timestamps as integers
           )
         )
-        .get()
+        .then(res => res[0] || null)
       
       // Additional check for expiration since SQLite date comparison can be tricky
       if (apiToken && apiToken.expiresAt && new Date(apiToken.expiresAt) < now) {
@@ -271,7 +271,7 @@ export class ApiTokenRepository extends BaseRepository {
         .select()
         .from(apiTokens)
         .where(lt(apiTokens.expiresAt, now))
-        .all()
+        
 
       if (expiredTokens.length > 0) {
         await db

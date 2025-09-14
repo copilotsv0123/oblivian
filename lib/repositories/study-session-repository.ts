@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { studySessions, type StudySession, type NewStudySession } from '@/lib/db/schema'
+import { studySessions, type StudySession, type NewStudySession } from '@/lib/db'
 import { eq, and, desc, gte, isNull, sql } from 'drizzle-orm'
 import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base-repository'
 
@@ -28,7 +28,7 @@ export class StudySessionRepository extends BaseRepository {
         .select()
         .from(studySessions)
         .where(eq(studySessions.id, sessionId))
-        .get()
+        .then(res => res[0] || null)
       
       return session || null
     } catch (error) {
@@ -47,7 +47,7 @@ export class StudySessionRepository extends BaseRepository {
         .orderBy(desc(studySessions.startedAt))
         .limit(limit)
         .offset(offset)
-        .all()
+        
       
       return sessions
     } catch (error) {
@@ -66,7 +66,7 @@ export class StudySessionRepository extends BaseRepository {
         .orderBy(desc(studySessions.startedAt))
         .limit(limit)
         .offset(offset)
-        .all()
+        
       
       return sessions
     } catch (error) {
@@ -87,7 +87,7 @@ export class StudySessionRepository extends BaseRepository {
         ))
         .orderBy(desc(studySessions.startedAt))
         .limit(limit)
-        .all()
+        
       
       return sessions
     } catch (error) {
@@ -115,7 +115,7 @@ export class StudySessionRepository extends BaseRepository {
         .from(studySessions)
         .where(whereCondition)
         .orderBy(desc(studySessions.startedAt))
-        .get()
+        .then(res => res[0] || null)
       
       return activeSession || null
     } catch (error) {
@@ -138,7 +138,7 @@ export class StudySessionRepository extends BaseRepository {
           gte(studySessions.startedAt, cutoffDate)
         ))
         .orderBy(desc(studySessions.startedAt))
-        .all()
+        
       
       return recentSessions
     } catch (error) {
@@ -161,7 +161,7 @@ export class StudySessionRepository extends BaseRepository {
             isNull(studySessions.endedAt)
           )
         )
-        .get()
+        .then(res => res[0] || null)
       
       if (activeSession) {
         // Return the existing session for this deck
@@ -300,7 +300,7 @@ export class StudySessionRepository extends BaseRepository {
           eq(studySessions.userId, userId),
           isNull(studySessions.endedAt)
         ))
-        .all()
+        
 
       if (activeSessions.length > 0) {
         await db
@@ -338,7 +338,7 @@ export class StudySessionRepository extends BaseRepository {
         })
         .from(studySessions)
         .where(whereCondition)
-        .get()
+        .then(res => res[0] || null)
 
       // Get last 7 days stats
       const last7Days = new Date()
@@ -353,7 +353,7 @@ export class StudySessionRepository extends BaseRepository {
           whereCondition,
           gte(studySessions.startedAt, last7Days)
         ))
-        .get()
+        .then(res => res[0] || null)
 
       // Get last 30 days stats
       const last30Days = new Date()
@@ -368,7 +368,7 @@ export class StudySessionRepository extends BaseRepository {
           whereCondition,
           gte(studySessions.startedAt, last30Days)
         ))
-        .get()
+        .then(res => res[0] || null)
 
       return {
         totalSessions: overallStats?.totalSessions || 0,

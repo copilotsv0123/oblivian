@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { decks, cards, type Deck, type NewDeck } from '@/lib/db/schema'
+import { decks, cards, type Deck, type NewDeck } from '@/lib/db'
 import { eq, and, desc, sql } from 'drizzle-orm'
 import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base-repository'
 
@@ -23,7 +23,7 @@ export class DeckRepository extends BaseRepository {
         .where(eq(decks.ownerUserId, userId))
         .orderBy(desc(decks.updatedAt))
       
-      return query.all()
+      return query
     }
     
     const query = db
@@ -32,7 +32,7 @@ export class DeckRepository extends BaseRepository {
       .where(eq(decks.ownerUserId, userId))
       .orderBy(desc(decks.updatedAt))
     
-    return query.all()
+    return query
   }
 
   async findById(deckId: string) {
@@ -40,7 +40,7 @@ export class DeckRepository extends BaseRepository {
       .select()
       .from(decks)
       .where(eq(decks.id, deckId))
-      .get()
+      .then(res => res[0] || null)
   }
 
   async findByIdAndUserId(deckId: string, userId: string) {
@@ -51,7 +51,7 @@ export class DeckRepository extends BaseRepository {
         eq(decks.id, deckId),
         eq(decks.ownerUserId, userId)
       ))
-      .get()
+      .then(res => res[0] || null)
   }
 
   async validateOwnership(deckId: string, userId: string): Promise<boolean> {
@@ -65,7 +65,7 @@ export class DeckRepository extends BaseRepository {
           eq(decks.id, deckId),
           eq(decks.ownerUserId, userId)
         ))
-        .get()
+        .then(res => res[0] || null)
       
       return !!deck
     } catch (error) {
@@ -81,7 +81,7 @@ export class DeckRepository extends BaseRepository {
         .select()
         .from(decks)
         .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
-        .get()
+        .then(res => res[0] || null)
 
       if (!deck) {
         return null
@@ -91,7 +91,7 @@ export class DeckRepository extends BaseRepository {
         .select()
         .from(cards)
         .where(eq(cards.deckId, deckId))
-        .all()
+        
 
       return { deck, cards: deckCards }
     } catch (error) {
@@ -172,7 +172,7 @@ export class DeckRepository extends BaseRepository {
         .select()
         .from(decks)
         .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
-        .get()
+        .then(res => res[0] || null)
 
       if (!existingDeck) {
         throw new Error('not found: Deck not found')
@@ -232,7 +232,7 @@ export class DeckRepository extends BaseRepository {
       .leftJoin(cards, eq(cards.deckId, decks.id))
       .where(whereCondition)
     
-    return query.get()
+    return query.then(res => res[0] || null)
   }
 }
 

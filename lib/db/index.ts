@@ -1,10 +1,14 @@
-import Database from 'better-sqlite3'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
-import * as schema from './schema'
+import { drizzle } from 'drizzle-orm/node-postgres'
+import { Pool } from 'pg'
+import * as schema from './schema-postgres'
 
-const sqlite = new Database('data/oblivian.db')
-sqlite.pragma('journal_mode = WAL')
+const DATABASE_URL = process.env.DATABASE_URL
+if (!DATABASE_URL) {
+  throw new Error('DATABASE_URL is not defined in environment variables')
+}
 
-export const db = drizzle(sqlite, { schema })
+const pool = new Pool({ connectionString: DATABASE_URL })
 
-export * from './schema'
+export const db = drizzle(pool, { schema })
+
+export * from './schema-postgres'
