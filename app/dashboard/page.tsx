@@ -128,11 +128,13 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="grid gap-[1px] md:grid-cols-2 lg:grid-cols-3">
-            {decks.map((deck) => (
+            {decks.map((deck, index) => (
               <Link
                 key={deck.id}
                 href={`/decks/${deck.id}`}
-                className="card hover:shadow-lg transition-shadow relative"
+                className={`card hover:shadow-lg hover:scale-[1.02] hover:border-indigo-500 hover:bg-indigo-50 hover:z-10 transition-all duration-200 relative ${
+                  index % 2 === 0 ? 'hover:rotate-1' : 'hover:-rotate-1'
+                }`}
               >
                 <h3 className="text-xl font-semibold text-primary mb-2">
                   {deck.title}
