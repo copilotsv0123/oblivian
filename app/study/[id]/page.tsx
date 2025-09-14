@@ -385,8 +385,9 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
                         stroke="currentColor"
                         strokeWidth="3"
                         fill="none"
-                        strokeDasharray={`${(timeRemaining / 5) * 100.53} 100.53`}
-                        className="text-primary transition-all duration-1000 linear"
+                        strokeDasharray="100.53"
+                        strokeDashoffset={`${100.53 - (timeRemaining / 5) * 100.53}`}
+                        className="text-primary transition-all duration-1000 ease-linear"
                       />
                     </svg>
                     <span className="absolute inset-0 flex items-center justify-center text-sm font-medium">

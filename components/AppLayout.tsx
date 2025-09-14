@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { Home, Trophy, Sparkles, BarChart3, Settings, LogOut } from 'lucide-react'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -95,40 +96,45 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <div className="flex gap-6">
                 <Link
                   href="/dashboard"
-                  className={`hover:text-primary transition-colors ${
+                  className={`flex items-center gap-2 hover:text-primary transition-colors ${
                     isActive('/dashboard') ? 'text-primary font-semibold' : 'text-gray-600'
                   }`}
                 >
+                  <Home className="w-4 h-4" />
                   Dashboard
                 </Link>
                 <Link
                   href="/achievements"
-                  className={`hover:text-primary transition-colors ${
+                  className={`flex items-center gap-2 hover:text-primary transition-colors ${
                     isActive('/achievements') ? 'text-primary font-semibold' : 'text-gray-600'
                   }`}
                 >
+                  <Trophy className="w-4 h-4" />
                   Achievements
                 </Link>
                 <button
                   onClick={handleRandomStudy}
-                  className="hover:text-primary transition-colors text-gray-600"
+                  className="flex items-center gap-2 hover:text-primary transition-colors text-gray-600"
                 >
-                  Random Study
+                  <Sparkles className="w-4 h-4" />
+                  Random Deck
                 </button>
                 <Link
                   href="/rankings"
-                  className={`hover:text-primary transition-colors ${
+                  className={`flex items-center gap-2 hover:text-primary transition-colors ${
                     isActive('/rankings') ? 'text-primary font-semibold' : 'text-gray-600'
                   }`}
                 >
+                  <BarChart3 className="w-4 h-4" />
                   Rankings
                 </Link>
-                <Link 
-                  href="/settings" 
-                  className={`hover:text-primary transition-colors ${
+                <Link
+                  href="/settings"
+                  className={`flex items-center gap-2 hover:text-primary transition-colors ${
                     isActive('/settings') ? 'text-primary font-semibold' : 'text-gray-600'
                   }`}
                 >
+                  <Settings className="w-4 h-4" />
                   Settings
                 </Link>
               </div>
@@ -141,8 +147,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
               )}
               <button
                 onClick={handleLogout}
-                className="text-gray-600 hover:text-primary transition-colors"
+                className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors"
               >
+                <LogOut className="w-4 h-4" />
                 Logout
               </button>
             </div>

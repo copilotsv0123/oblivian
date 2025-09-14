@@ -5,7 +5,7 @@ export const users = pgTable('users', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
 export const apiTokens = pgTable('api_tokens', {
@@ -14,7 +14,7 @@ export const apiTokens = pgTable('api_tokens', {
   name: text('name').notNull(),
   token: text('token').notNull().unique(),
   lastUsedAt: timestamp('last_used_at'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   expiresAt: timestamp('expires_at'),
 })
 
@@ -23,7 +23,7 @@ export const providers = pgTable('providers', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   apiKeyEncrypted: text('api_key_encrypted').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
 export const decks = pgTable('decks', {
@@ -34,8 +34,8 @@ export const decks = pgTable('decks', {
   level: text('level').notNull().default('simple'),
   language: text('language').notNull().default('en'),
   isPublic: boolean('is_public').notNull().default(false),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
 export const cards = pgTable('cards', {
@@ -47,8 +47,8 @@ export const cards = pgTable('cards', {
   choices: text('choices'), // JSON string
   explanation: text('explanation'),
   advancedNotes: text('advanced_notes'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
 export const reviews = pgTable('reviews', {
@@ -57,7 +57,7 @@ export const reviews = pgTable('reviews', {
   cardId: uuid('card_id').notNull().references(() => cards.id, { onDelete: 'cascade' }),
   rating: text('rating').notNull(),
   scheduledAt: timestamp('scheduled_at').notNull(),
-  reviewedAt: timestamp('reviewed_at').defaultNow().notNull(),
+  reviewedAt: timestamp('reviewed_at', { withTimezone: true }).defaultNow().notNull(),
   intervalDays: real('interval_days').notNull(),
   stability: real('stability').notNull(),
   difficulty: real('difficulty').notNull(),
@@ -68,8 +68,8 @@ export const studySessions = pgTable('study_sessions', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   deckId: uuid('deck_id').notNull().references(() => decks.id, { onDelete: 'cascade' }),
-  startedAt: timestamp('started_at').defaultNow().notNull(),
-  endedAt: timestamp('ended_at'),
+  startedAt: timestamp('started_at', { withTimezone: true }).defaultNow().notNull(),
+  endedAt: timestamp('ended_at', { withTimezone: true }),
   secondsActive: integer('seconds_active').notNull().default(0),
 })
 
@@ -81,7 +81,7 @@ export const deckScores = pgTable('deck_scores', {
   accuracyPct: real('accuracy_pct').notNull(),
   stabilityAvg: real('stability_avg').notNull(),
   lapses: integer('lapses').notNull().default(0),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
 export const deckUsage = pgTable('deck_usage', {
@@ -90,7 +90,7 @@ export const deckUsage = pgTable('deck_usage', {
   window: text('window').notNull(),
   cardsReviewed: integer('cards_reviewed').notNull().default(0),
   studyHours: real('study_hours').notNull().default(0),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
 export const deckEmbeddings = pgTable('deck_embeddings', {
@@ -99,7 +99,7 @@ export const deckEmbeddings = pgTable('deck_embeddings', {
   vector: vector('vector', { dimensions: 1536 }).notNull(),
   dim: integer('dim').notNull(),
   model: text('model').notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
 export const deckRankings = pgTable('deck_rankings', {
@@ -111,7 +111,7 @@ export const deckRankings = pgTable('deck_rankings', {
   uniqueUsers: integer('unique_users').notNull().default(0),
   score: real('score').notNull().default(0), // 70% cards + 30% hours
   rank: integer('rank'),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
 // Type exports for PostgreSQL
@@ -139,7 +139,7 @@ export const userAchievements = pgTable('user_achievements', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   achievementId: text('achievement_id').notNull(),
-  unlockedAt: timestamp('unlocked_at').defaultNow().notNull(),
+  unlockedAt: timestamp('unlocked_at', { withTimezone: true }).defaultNow().notNull(),
   notified: boolean('notified').default(false).notNull(),
 })
 
@@ -153,7 +153,7 @@ export const userStats = pgTable('user_stats', {
   decksCreated: integer('decks_created').default(0).notNull(),
   currentStreak: integer('current_streak').default(0).notNull(),
   longestStreak: integer('longest_streak').default(0).notNull(),
-  lastStudyDate: timestamp('last_study_date'),
+  lastStudyDate: timestamp('last_study_date', { withTimezone: true }),
   perfectSessions: integer('perfect_sessions').default(0).notNull(),
   correctStreak: integer('correct_streak').default(0).notNull(),
   longestCorrectStreak: integer('longest_correct_streak').default(0).notNull(),
@@ -162,7 +162,7 @@ export const userStats = pgTable('user_stats', {
   weekendSessions: integer('weekend_sessions').default(0).notNull(),
   publicDecks: integer('public_decks').default(0).notNull(),
   languagesUsed: text('languages_used').default('[]').notNull(), // JSON array of language codes
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
 export type UserAchievement = typeof userAchievements.$inferSelect
