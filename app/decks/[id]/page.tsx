@@ -293,8 +293,8 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                           <p className="text-primary font-medium mt-1">
                             {card.front}
                           </p>
-                          <p className="text-gray-600 mt-2">
-                            {card.back || ''}
+                          <div className="text-gray-600 mt-2">
+                            <span>{card.back || ''}</span>
                             {card.advancedNotes && (
                               <button
                                 onClick={() => {
@@ -306,22 +306,16 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                                   }
                                   setExpandedCards(newExpanded)
                                 }}
-                                className="inline-flex items-center gap-1 ml-2 text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
+                                className="inline-block ml-1 text-indigo-600 hover:text-indigo-700 transition-colors align-middle"
                               >
                                 {expandedCards.has(card.id) ? (
-                                  <>
-                                    <ChevronUp className="w-4 h-4" />
-                                    <span>Collapse</span>
-                                  </>
+                                  <ChevronUp className="w-3 h-3 inline-block" />
                                 ) : (
-                                  <>
-                                    <ChevronDown className="w-4 h-4" />
-                                    <span>More</span>
-                                  </>
+                                  <ChevronDown className="w-3 h-3 inline-block" />
                                 )}
                               </button>
                             )}
-                          </p>
+                          </div>
                           {card.advancedNotes && expandedCards.has(card.id) && (
                             <div className="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                               <p className="text-sm font-medium text-indigo-700 mb-2">Advanced Notes:</p>
