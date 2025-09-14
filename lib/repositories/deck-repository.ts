@@ -1,10 +1,10 @@
 import { db } from '@/lib/db'
-import { decks, cards, type Deck, type NewDeck } from '@/lib/db'
+import { decks, cards, userDeckStars, type Deck, type NewDeck } from '@/lib/db'
 import { eq, and, desc, sql } from 'drizzle-orm'
 import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base-repository'
 
 export class DeckRepository extends BaseRepository {
-  async findAll(includeCardCount = false) {
+  async findAll(includeCardCount = false, userId?: string) {
     if (includeCardCount) {
       const query = db
         .select({
@@ -16,7 +16,9 @@ export class DeckRepository extends BaseRepository {
           language: decks.language,
           isPublic: decks.isPublic,
           autoRevealSeconds: decks.autoRevealSeconds,
-          starred: decks.starred,
+          starred: userId
+            ? sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred')
+            : sql<boolean>`false`.as('starred'),
           createdAt: decks.createdAt,
           updatedAt: decks.updatedAt,
           cardCount: sql<number>`(SELECT COUNT(*) FROM cards WHERE deck_id = decks.id)`.as('card_count')
@@ -47,7 +49,7 @@ export class DeckRepository extends BaseRepository {
           language: decks.language,
           isPublic: decks.isPublic,
           autoRevealSeconds: decks.autoRevealSeconds,
-          starred: decks.starred,
+          starred: sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred'),
           createdAt: decks.createdAt,
           updatedAt: decks.updatedAt,
           cardCount: sql<number>`(SELECT COUNT(*) FROM cards WHERE deck_id = decks.id)`.as('card_count')
@@ -60,7 +62,19 @@ export class DeckRepository extends BaseRepository {
     }
 
     const query = db
-      .select()
+      .select({
+        id: decks.id,
+        ownerUserId: decks.ownerUserId,
+        title: decks.title,
+        description: decks.description,
+        level: decks.level,
+        language: decks.language,
+        isPublic: decks.isPublic,
+        autoRevealSeconds: decks.autoRevealSeconds,
+        starred: sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred'),
+        createdAt: decks.createdAt,
+        updatedAt: decks.updatedAt,
+      })
       .from(decks)
       .where(eq(decks.ownerUserId, userId))
       .orderBy(desc(decks.updatedAt))
@@ -68,17 +82,44 @@ export class DeckRepository extends BaseRepository {
     return query
   }
 
-  async findById(deckId: string) {
-    return db
-      .select()
+  async findById(deckId: string, userId?: string) {
+    const baseQuery = db
+      .select({
+        id: decks.id,
+        ownerUserId: decks.ownerUserId,
+        title: decks.title,
+        description: decks.description,
+        level: decks.level,
+        language: decks.language,
+        isPublic: decks.isPublic,
+        autoRevealSeconds: decks.autoRevealSeconds,
+        starred: userId
+          ? sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred')
+          : sql<boolean>`false`.as('starred'),
+        createdAt: decks.createdAt,
+        updatedAt: decks.updatedAt,
+      })
       .from(decks)
       .where(eq(decks.id, deckId))
-      .then(res => res[0] || null)
+
+    return baseQuery.then(res => res[0] || null)
   }
 
   async findByIdAndUserId(deckId: string, userId: string) {
     return db
-      .select()
+      .select({
+        id: decks.id,
+        ownerUserId: decks.ownerUserId,
+        title: decks.title,
+        description: decks.description,
+        level: decks.level,
+        language: decks.language,
+        isPublic: decks.isPublic,
+        autoRevealSeconds: decks.autoRevealSeconds,
+        starred: sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred'),
+        createdAt: decks.createdAt,
+        updatedAt: decks.updatedAt,
+      })
       .from(decks)
       .where(and(
         eq(decks.id, deckId),
@@ -110,7 +151,19 @@ export class DeckRepository extends BaseRepository {
 
       // Allow any user to view any deck (simulating all decks are public)
       const deck = await db
-        .select()
+        .select({
+          id: decks.id,
+          ownerUserId: decks.ownerUserId,
+          title: decks.title,
+          description: decks.description,
+          level: decks.level,
+          language: decks.language,
+          isPublic: decks.isPublic,
+          autoRevealSeconds: decks.autoRevealSeconds,
+          starred: sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred'),
+          createdAt: decks.createdAt,
+          updatedAt: decks.updatedAt,
+        })
         .from(decks)
         .where(eq(decks.id, deckId))
         .then(res => res[0] || null)
@@ -123,7 +176,6 @@ export class DeckRepository extends BaseRepository {
         .select()
         .from(cards)
         .where(eq(cards.deckId, deckId))
-
 
       return { deck, cards: deckCards }
     } catch (error) {
@@ -271,27 +323,50 @@ export class DeckRepository extends BaseRepository {
     try {
       this.validateRequiredFields({ deckId, userId }, ['deckId', 'userId'])
 
-      // First check ownership
-      const existingDeck = await db
-        .select({ starred: decks.starred })
+      // Check if deck exists
+      const deckExists = await db
+        .select({ id: decks.id })
         .from(decks)
-        .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
+        .where(eq(decks.id, deckId))
         .then(res => res[0] || null)
 
-      if (!existingDeck) {
+      if (!deckExists) {
         throw new Error('not found: Deck not found')
       }
 
-      const [updated] = await db
-        .update(decks)
-        .set({
-          starred: !existingDeck.starred,
-          updatedAt: new Date()
-        })
-        .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
-        .returning()
+      // Check if star exists
+      const existingStar = await db
+        .select()
+        .from(userDeckStars)
+        .where(and(
+          eq(userDeckStars.userId, userId),
+          eq(userDeckStars.deckId, deckId)
+        ))
+        .then(res => res[0] || null)
 
-      return updated
+      let starred = false
+
+      if (existingStar) {
+        // Remove star
+        await db
+          .delete(userDeckStars)
+          .where(and(
+            eq(userDeckStars.userId, userId),
+            eq(userDeckStars.deckId, deckId)
+          ))
+      } else {
+        // Add star
+        await db
+          .insert(userDeckStars)
+          .values({
+            userId,
+            deckId
+          })
+        starred = true
+      }
+
+      // Return the deck with updated starred status
+      return await this.findById(deckId, userId)
     } catch (error) {
       this.handleError(error, 'toggleStar')
     }

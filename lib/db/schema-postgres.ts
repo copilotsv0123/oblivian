@@ -35,7 +35,6 @@ export const decks = pgTable('decks', {
   language: text('language').notNull().default('en'),
   isPublic: boolean('is_public').notNull().default(false),
   autoRevealSeconds: integer('auto_reveal_seconds').notNull().default(5),
-  starred: boolean('starred').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
@@ -167,7 +166,17 @@ export const userStats = pgTable('user_stats', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
+// User-specific deck stars (favorites)
+export const userDeckStars = pgTable('user_deck_stars', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  deckId: uuid('deck_id').notNull().references(() => decks.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
 export type UserAchievement = typeof userAchievements.$inferSelect
 export type NewUserAchievement = typeof userAchievements.$inferInsert
 export type UserStats = typeof userStats.$inferSelect
 export type NewUserStats = typeof userStats.$inferInsert
+export type UserDeckStar = typeof userDeckStars.$inferSelect
+export type NewUserDeckStar = typeof userDeckStars.$inferInsert
