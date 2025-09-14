@@ -71,7 +71,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
 
   useEffect(() => {
     fetchDeck()
-    fetchSimilarDecks()
+    // fetchSimilarDecks() // Disabled until OpenAI integration is complete
   }, [fetchDeck, fetchSimilarDecks])
 
   // Close menus when clicking outside

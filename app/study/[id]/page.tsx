@@ -27,6 +27,8 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   const [cards, setCards] = useState<Card[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showAnswer, setShowAnswer] = useState(false)
+  const [selectedConfidence, setSelectedConfidence] = useState<'good' | 'easy' | 'dont_know' | null>(null)
+  const [frozenTime, setFrozenTime] = useState<number>(0)
   const [showAdvancedNotes, setShowAdvancedNotes] = useState(false)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<StudyStats>({ due: 0, new: 0, total: 0 })
@@ -78,7 +80,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
 
   useEffect(() => {
     initSession()
-    
+
     // Cleanup timer on unmount
     return () => {
       if (timerInterval.current) {
@@ -87,7 +89,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
     }
   }, [initSession])
 
-  const handleReview = async (rating: 'again' | 'hard' | 'good' | 'easy' | 'skip') => {
+  const handleReview = useCallback(async (rating: 'again' | 'hard' | 'good' | 'easy' | 'skip') => {
     if (!cards[currentIndex]) return
 
     const timeSpent = Math.floor((Date.now() - cardStartTime) / 1000)
@@ -109,14 +111,16 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
       if (currentIndex < cards.length - 1) {
         setCurrentIndex(currentIndex + 1)
         setShowAnswer(false)
+        setSelectedConfidence(null)
         setShowAdvancedNotes(false)
+        setFrozenTime(0)
         setCardStartTime(Date.now())
       } else {
         // End session
         if (timerInterval.current) {
           clearInterval(timerInterval.current)
         }
-        
+
         // Update session with total time
         await fetch(`/api/study/${resolvedParams.id}/session`, {
           method: 'PUT',
@@ -126,13 +130,82 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
             secondsActive: sessionTime,
           }),
         })
-        
+
         router.push(`/decks/${resolvedParams.id}`)
       }
     } catch (error) {
       console.error('Error recording review:', error)
     }
-  }
+  }, [cards, currentIndex, cardStartTime, resolvedParams.id, sessionId, sessionTime, router])
+
+  const handleConfidenceSelect = useCallback((confidence: 'good' | 'easy' | 'dont_know') => {
+    const timeSpent = Math.floor((Date.now() - cardStartTime) / 1000)
+    setFrozenTime(timeSpent)
+    setSelectedConfidence(confidence)
+    setShowAnswer(true)
+    setShowAdvancedNotes(true) // Always show advanced notes when answer is revealed
+  }, [cardStartTime])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      // Prevent default behavior for our shortcuts
+      if (['Space', 'Digit1', 'Digit2', 'Digit3', 'Escape'].includes(e.code)) {
+        e.preventDefault()
+      }
+
+      // Confidence selection (before answer is shown)
+      if (!showAnswer) {
+        switch (e.code) {
+          case 'Digit1':
+            handleConfidenceSelect('dont_know')
+            break
+          case 'Digit2':
+            handleConfidenceSelect('good')
+            break
+          case 'Digit3':
+            handleConfidenceSelect('easy')
+            break
+        }
+      }
+
+      // Handle "I don't know" case - Space to continue
+      if (showAnswer && selectedConfidence === 'dont_know') {
+        if (e.code === 'Space') {
+          handleReview('again')
+          return
+        }
+      }
+
+      // Review ratings (only when answer is shown and not "don't know")
+      if (showAnswer && selectedConfidence !== 'dont_know') {
+        switch (e.code) {
+          case 'Digit1':
+            handleReview('again')
+            break
+          case 'Digit2':
+            handleReview('easy')
+            break
+        }
+      }
+
+      // Exit study session with Escape
+      if (e.code === 'Escape') {
+        router.push(`/decks/${resolvedParams.id}`)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyPress)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress)
+    }
+  }, [showAnswer, showAdvancedNotes, selectedConfidence, cards, currentIndex, handleReview, handleConfidenceSelect, router, resolvedParams.id])
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60)
@@ -203,19 +276,6 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
         )}
         <div className="card max-w-2xl w-full">
           <div className="mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-sm text-gray-500 uppercase">
-                {currentCard.type.replace('_', ' ')}
-              </span>
-              <div className="flex gap-2 text-sm">
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                  Due: {stats.due}
-                </span>
-                <span className="px-2 py-1 bg-green-100 text-green-700 rounded">
-                  New: {stats.new}
-                </span>
-              </div>
-            </div>
             
             <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
               <div
@@ -230,24 +290,37 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
               {currentCard.front}
             </h2>
 
-            {currentCard.advancedNotes && (
-              <div className="flex items-center justify-center gap-2 mb-6 text-sm text-indigo-600">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Advanced notes available</span>
-              </div>
-            )}
 
             {!showAnswer ? (
-              <button
-                onClick={() => setShowAnswer(true)}
-                className="btn-primary px-8 py-3 text-lg"
-              >
-                Show Answer
-              </button>
+              <div className="space-y-4">
+                <div className="w-32 h-0.5 bg-gray-300 mx-auto my-8"></div>
+                <p className="text-gray-600 mb-6">How confident are you about your answer?</p>
+                <div className="flex gap-3 justify-center flex-wrap">
+                  <button
+                    onClick={() => handleConfidenceSelect('dont_know')}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+                  >
+                    I don&apos;t know
+                    <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs">1</kbd>
+                  </button>
+                  <button
+                    onClick={() => handleConfidenceSelect('good')}
+                    className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center gap-2"
+                  >
+                    I think I know
+                    <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs">2</kbd>
+                  </button>
+                  <button
+                    onClick={() => handleConfidenceSelect('easy')}
+                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
+                  >
+                    I know
+                    <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs">3</kbd>
+                  </button>
+                </div>
+              </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-6 relative">
                 <div className="p-6 bg-gray-50 rounded-lg">
                   <div className="text-xl text-gray-800 prose prose-lg max-w-none">
                     <ReactMarkdown>
@@ -256,67 +329,55 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
                   </div>
                 </div>
 
-                {currentCard.advancedNotes && (
-                  <div className="border border-indigo-200 rounded-lg overflow-hidden">
+                {selectedConfidence === 'dont_know' ? (
+                  <div className="text-center py-4">
                     <button
-                      onClick={() => setShowAdvancedNotes(!showAdvancedNotes)}
-                      className="w-full px-4 py-3 bg-indigo-50 hover:bg-indigo-100 transition-colors flex items-center justify-between text-left"
+                      onClick={() => handleReview('again')}
+                      className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 mx-auto"
                     >
-                      <span className="font-medium text-indigo-700">Advanced Notes</span>
-                      <svg
-                        className={`w-5 h-5 text-indigo-600 transform transition-transform ${showAdvancedNotes ? 'rotate-180' : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      Next Card
+                      <kbd className="px-2 py-1 bg-white/20 rounded text-sm">Space</kbd>
                     </button>
-                    {showAdvancedNotes && (
-                      <div className="p-4 bg-indigo-50 border-t border-indigo-200">
-                        <div className="prose prose-lg max-w-none text-gray-700">
-                          <ReactMarkdown>
-                            {currentCard.advancedNotes}
-                          </ReactMarkdown>
-                        </div>
-                      </div>
-                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-center text-gray-600 text-sm">
+                      {selectedConfidence === 'good' ? 'Did you actually know it?' : 'Did you really know it?'}
+                    </p>
+                    <div className="flex gap-3 justify-center">
+                      <button
+                        onClick={() => handleReview('again')}
+                        className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+                      >
+                        No
+                        <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs">1</kbd>
+                      </button>
+                      <button
+                        onClick={() => handleReview('easy')}
+                        className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
+                      >
+                        Yes
+                        <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs">2</kbd>
+                      </button>
+                    </div>
                   </div>
                 )}
 
-                <div className="space-y-3">
-                  <div className="flex gap-3 justify-center">
-                    <button
-                      onClick={() => handleReview('again')}
-                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                    >
-                      Again
-                    </button>
-                    <button
-                      onClick={() => handleReview('hard')}
-                      className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-                    >
-                      Hard
-                    </button>
-                    <button
-                      onClick={() => handleReview('good')}
-                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                    >
-                      Good
-                    </button>
-                    <button
-                      onClick={() => handleReview('easy')}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    >
-                      Easy
-                    </button>
+                {currentCard.advancedNotes && (
+                  <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <div className="prose prose-lg max-w-none text-gray-700">
+                      <ReactMarkdown>
+                        {currentCard.advancedNotes}
+                      </ReactMarkdown>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => handleReview('skip')}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm"
-                  >
-                    Skip this card →
-                  </button>
+                )}
+
+                {/* Time taken in bottom right */}
+                <div className="text-right">
+                  <span className="text-xs text-gray-500">
+                    {frozenTime}s
+                  </span>
                 </div>
               </div>
             )}
