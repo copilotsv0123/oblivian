@@ -13,6 +13,12 @@ export const metadata: Metadata = {
   description: 'A modern spaced repetition system that helps you learn faster and remember longer.',
 }
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
+
 export default function RootLayout({
   children,
 }: {

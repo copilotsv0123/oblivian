@@ -284,18 +284,27 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
           case 'create_cards_batch':
             console.log('MCP create_cards_batch called with:', { deckId: args.deckId, userId, cardsCount: args.cards?.length })
             console.log('Cards data:', JSON.stringify(args.cards, null, 2))
-            
+
             try {
+              // Check card count limit (500 cards max per deck)
+              const currentCardCount = await cardRepository.countByDeckId(args.deckId)
+              const totalAfterImport = currentCardCount + args.cards.length
+
+              if (totalAfterImport > 500) {
+                const remainingSlots = Math.max(0, 500 - currentCardCount)
+                throw new Error(`Cannot create ${args.cards.length} cards. Deck currently has ${currentCardCount} cards. Maximum is 500 cards per deck. You can add up to ${remainingSlots} more cards.`)
+              }
+
               const batchResult = await cardRepository.createBatchWithOwnershipCheck(args.deckId, userId, args.cards)
               console.log('Batch result:', { success: batchResult.success, count: batchResult.count })
-              
+
               return {
                 jsonrpc: '2.0',
                 id: request.id,
                 result: {
                   content: [{
                     type: 'text',
-                    text: JSON.stringify({ 
+                    text: JSON.stringify({
                       created: batchResult.count,
                       cards: batchResult.cards,
                     }, null, 2),

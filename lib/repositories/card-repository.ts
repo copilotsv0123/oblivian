@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { cards, reviews, decks, type Card, type NewCard } from '@/lib/db'
-import { eq, and, desc, inArray, lte, isNull } from 'drizzle-orm'
+import { eq, and, desc, inArray, lte, isNull, sql } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 import { CreateCardInput, UpdateCardInput, Choice } from '@/lib/types/cards'
 import { transformDbCardToApiCard, transformDbCardsToApiCards } from '@/lib/db/mappers'
@@ -15,9 +15,18 @@ export class CardRepository extends BaseRepository {
       .orderBy(desc(cards.createdAt))
       .limit(limit)
       .offset(offset)
-      
-    
+
+
     return transformDbCardsToApiCards(dbCards)
+  }
+
+  async countByDeckId(deckId: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(cards)
+      .where(eq(cards.deckId, deckId))
+
+    return result[0]?.count || 0
   }
 
   async findById(cardId: string) {
@@ -122,6 +131,15 @@ export class CardRepository extends BaseRepository {
 
       if (!deck) {
         throw new Error('not found: Deck not found')
+      }
+
+      // Check card count limit (500 cards max per deck)
+      const currentCardCount = await this.countByDeckId(deckId)
+      const totalAfterImport = currentCardCount + cardInputs.length
+
+      if (totalAfterImport > 500) {
+        const remainingSlots = Math.max(0, 500 - currentCardCount)
+        throw new Error(`bad request: Cannot create ${cardInputs.length} cards. Deck currently has ${currentCardCount} cards. Maximum is 500 cards per deck. You can add up to ${remainingSlots} more cards.`)
       }
 
       // Validate all cards first

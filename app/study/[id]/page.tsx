@@ -251,37 +251,37 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   return (
     <div className="min-h-screen bg-accent flex flex-col">
       <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
-              <Link href={`/decks/${resolvedParams.id}`} className="text-primary hover:underline">
-                ← Exit Study
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+              <Link href={`/decks/${resolvedParams.id}`} className="text-primary hover:underline text-sm sm:text-base whitespace-nowrap">
+                ← Exit
               </Link>
               {deckTitle && (
-                <div className="text-gray-400">|</div>
-              )}
-              {deckTitle && (
-                <h1 className="text-lg font-semibold text-gray-800">{deckTitle}</h1>
+                <>
+                  <div className="text-gray-400 hidden sm:block">|</div>
+                  <h1 className="text-sm sm:text-lg font-semibold text-gray-800 truncate">{deckTitle}</h1>
+                </>
               )}
             </div>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center gap-2 sm:gap-6">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="text-lg font-medium text-gray-700">{formatTime(sessionTime)}</span>
+                <span className="text-sm sm:text-lg font-medium text-gray-700">{formatTime(sessionTime)}</span>
               </div>
-              <div className="text-sm text-gray-600">
-                Card {currentIndex + 1} of {cards.length}
+              <div className="text-xs sm:text-sm text-gray-600">
+                {currentIndex + 1}/{cards.length}
               </div>
             </div>
           </div>
         </div>
       </nav>
 
-      <main className="flex-1 flex flex-col items-center p-8 pt-20">
+      <main className="flex-1 flex flex-col items-center p-4 sm:p-8 pt-8 sm:pt-20">
         {warning && (
-          <div className="max-w-2xl w-full mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="max-w-2xl w-full mb-4 p-3 sm:p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div className="flex items-start">
               <svg className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -302,43 +302,43 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
           </div>
 
           <div className="text-center">
-            <h2 className="text-2xl font-medium text-primary mb-2">
+            <h2 className="text-lg sm:text-2xl font-medium text-primary mb-2">
               {currentCard.front}
             </h2>
 
 
             {!showAnswer ? (
               <div className="space-y-4">
-                <div className="w-32 h-0.5 bg-gray-300 mx-auto my-8"></div>
-                <p className="text-gray-600 mb-6">How confident are you about your answer?</p>
-                <div className="flex gap-3 justify-center flex-wrap">
+                <div className="w-24 sm:w-32 h-0.5 bg-gray-300 mx-auto my-6 sm:my-8"></div>
+                <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">How confident are you about your answer?</p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center items-stretch sm:items-center">
                   <button
                     onClick={() => handleConfidenceSelect('dont_know')}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+                    className="px-4 py-3 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     I don&apos;t know
-                    <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs">1</kbd>
+                    <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs hidden sm:inline">1</kbd>
                   </button>
                   <button
                     onClick={() => handleConfidenceSelect('good')}
-                    className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center gap-2"
+                    className="px-4 py-3 sm:py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     I think I know
-                    <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs">2</kbd>
+                    <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs hidden sm:inline">2</kbd>
                   </button>
                   <button
                     onClick={() => handleConfidenceSelect('easy')}
-                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
+                    className="px-4 py-3 sm:py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
                     I know
-                    <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs">3</kbd>
+                    <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs hidden sm:inline">3</kbd>
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-6 relative">
-                <div className="p-6 bg-gray-50 rounded-lg">
-                  <div className="text-xl text-gray-800 prose prose-lg max-w-none">
+              <div className="space-y-4 sm:space-y-6 relative">
+                <div className="p-4 sm:p-6 bg-gray-50 rounded-lg">
+                  <div className="text-base sm:text-xl text-gray-800 prose prose-sm sm:prose-lg max-w-none">
                     <ReactMarkdown>
                       {currentCard.back || currentCard.explanation || 'No answer provided'}
                     </ReactMarkdown>
@@ -346,42 +346,42 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
                 </div>
 
                 {selectedConfidence === 'dont_know' ? (
-                  <div className="text-center py-4">
+                  <div className="text-center py-3 sm:py-4">
                     <button
                       onClick={() => handleReview('again')}
-                      className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 mx-auto"
+                      className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 mx-auto text-sm sm:text-base"
                     >
                       Next Card
-                      <kbd className="px-2 py-1 bg-white/20 rounded text-sm">Space</kbd>
+                      <kbd className="px-2 py-1 bg-white/20 rounded text-xs sm:text-sm hidden sm:inline">Space</kbd>
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-center text-gray-600 text-sm">
+                    <p className="text-center text-gray-600 text-xs sm:text-sm">
                       {selectedConfidence === 'good' ? 'Did you actually know it?' : 'Did you really know it?'}
                     </p>
                     <div className="flex gap-3 justify-center">
                       <button
                         onClick={() => handleReview('again')}
-                        className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+                        className="px-6 py-2.5 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                       >
                         No
-                        <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs">1</kbd>
+                        <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs hidden sm:inline">1</kbd>
                       </button>
                       <button
                         onClick={() => handleReview('easy')}
-                        className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
+                        className="px-6 py-2.5 sm:py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                       >
                         Yes
-                        <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs">2</kbd>
+                        <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-xs hidden sm:inline">2</kbd>
                       </button>
                     </div>
                   </div>
                 )}
 
                 {currentCard.advancedNotes && (
-                  <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                    <div className="prose prose-lg max-w-none text-gray-700">
+                  <div className="p-3 sm:p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <div className="prose prose-sm sm:prose-lg max-w-none text-gray-700">
                       <ReactMarkdown>
                         {currentCard.advancedNotes}
                       </ReactMarkdown>
