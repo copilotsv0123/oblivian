@@ -287,7 +287,9 @@ export class CardRepository extends BaseRepository {
       // Get new cards (cards that have never been reviewed by this user)
       // First get all unreviewed cards, then randomize
       const allNewCardsQuery = await db
-        .select()
+        .select({
+          cardId: cards.id,
+        })
         .from(cards)
         .leftJoin(reviews, and(
           eq(cards.id, reviews.cardId),
@@ -302,7 +304,7 @@ export class CardRepository extends BaseRepository {
 
       // Randomize the new cards selection
       const shuffledNewCards = allNewCardsQuery
-        .map(c => ({ id: c.cards.id, sort: Math.random() }))
+        .map(c => ({ id: c.cardId, sort: Math.random() }))
         .sort((a, b) => a.sort - b.sort)
         .slice(0, maxNewCards)
         .map(c => c.id)
