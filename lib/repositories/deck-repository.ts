@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { decks, cards, userDeckStars, type Deck, type NewDeck } from '@/lib/db'
-import { eq, and, desc, sql } from 'drizzle-orm'
+import { eq, and, desc, sql, or } from 'drizzle-orm'
 import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base-repository'
 
 export class DeckRepository extends BaseRepository {
@@ -32,6 +32,30 @@ export class DeckRepository extends BaseRepository {
     const query = db
       .select()
       .from(decks)
+      .orderBy(desc(decks.updatedAt))
+
+    return query
+  }
+
+  async findForDashboard(userId: string) {
+    // Get ALL decks with starred status for current user
+    const query = db
+      .select({
+        id: decks.id,
+        ownerUserId: decks.ownerUserId,
+        title: decks.title,
+        description: decks.description,
+        level: decks.level,
+        language: decks.language,
+        isPublic: decks.isPublic,
+        autoRevealSeconds: decks.autoRevealSeconds,
+        starred: sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred'),
+        createdAt: decks.createdAt,
+        updatedAt: decks.updatedAt,
+        cardCount: sql<number>`(SELECT COUNT(*) FROM cards WHERE deck_id = decks.id)`.as('card_count')
+      })
+      .from(decks)
+      // No WHERE clause - show ALL decks
       .orderBy(desc(decks.updatedAt))
 
     return query
