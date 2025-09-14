@@ -4,7 +4,8 @@ import { useState, useEffect, use, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
-import { MoreVertical, Trash2, Edit, ChevronDown, ChevronUp, Calendar, Trophy, TrendingUp, Layers } from 'lucide-react'
+import { MoreVertical, Trash2, Edit, ChevronDown, ChevronUp, Calendar, Trophy, TrendingUp, Layers, CheckCircle, AlertCircle, XCircle } from 'lucide-react'
+import Tooltip from '@/components/Tooltip'
 
 interface Card {
   id: string
@@ -46,12 +47,18 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
   const [editValues, setEditValues] = useState<{ front: string; back: string; advancedNotes?: string }>({ front: '', back: '' })
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
   const [stats, setStats] = useState<DeckStats | null>(null)
+  const [cardPerformance, setCardPerformance] = useState<Record<string, {
+    difficulty: 'easy' | 'medium' | 'hard' | 'unreviewed'
+    successRate: number
+    recentReviews: Array<'again' | 'hard' | 'good' | 'easy'>
+  }>>({})
 
   const fetchDeck = useCallback(async () => {
     try {
-      const [deckRes, statsRes] = await Promise.all([
+      const [deckRes, statsRes, perfRes] = await Promise.all([
         fetch(`/api/decks/${resolvedParams.id}`),
-        fetch(`/api/decks/${resolvedParams.id}/stats`)
+        fetch(`/api/decks/${resolvedParams.id}/stats`),
+        fetch(`/api/decks/${resolvedParams.id}/card-performance`)
       ])
 
       if (!deckRes.ok) {
@@ -69,6 +76,11 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
       if (statsRes.ok) {
         const statsData = await statsRes.json()
         setStats(statsData.stats)
+      }
+
+      if (perfRes.ok) {
+        const perfData = await perfRes.json()
+        setCardPerformance(perfData.cardPerformance || {})
       }
     } catch (error) {
       console.error('Error fetching deck:', error)
@@ -344,11 +356,14 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-primary">Cards</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {cards.map((card, index) => (
-                <div
-                  key={card.id}
-                  className={`card transition-colors ${card.advancedNotes && editingCard !== card.id ? 'cursor-pointer hover:bg-gray-50' : ''}`}
-                onClick={() => {
+              {cards.map((card, index) => {
+                const perf = cardPerformance[card.id]
+
+                return (
+                  <div
+                    key={card.id}
+                    className={`card transition-colors relative ${card.advancedNotes && editingCard !== card.id ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+                  onClick={() => {
                   if (card.advancedNotes && editingCard !== card.id) {
                     const newExpanded = new Set(expandedCards)
                     if (newExpanded.has(card.id)) {
@@ -427,6 +442,25 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                       </>
                     )}
                   </div>
+
+                  {/* Performance indicator icon */}
+                  {perf && perf.recentReviews.length > 0 && (
+                    <div className="absolute bottom-3 right-3">
+                      {perf.difficulty === 'easy' ? (
+                        <Tooltip content={`Easy - ${Math.round(perf.successRate * 100)}% success rate`}>
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        </Tooltip>
+                      ) : perf.difficulty === 'medium' ? (
+                        <Tooltip content={`Medium - ${Math.round(perf.successRate * 100)}% success rate`}>
+                          <AlertCircle className="w-5 h-5 text-yellow-500" />
+                        </Tooltip>
+                      ) : perf.difficulty === 'hard' ? (
+                        <Tooltip content={`Hard - ${Math.round(perf.successRate * 100)}% success rate`}>
+                          <XCircle className="w-5 h-5 text-red-500" />
+                        </Tooltip>
+                      ) : null}
+                    </div>
+                  )}
                   <div className="relative">
                     <button
                       onClick={(e) => {
@@ -466,7 +500,8 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                   </div>
                 </div>
               </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
