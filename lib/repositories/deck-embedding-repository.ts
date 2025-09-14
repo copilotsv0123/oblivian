@@ -34,14 +34,14 @@ export class DeckEmbeddingRepository extends BaseRepository {
   async upsertEmbedding(deckId: string, vector: number[], model: string): Promise<void> {
     try {
       this.validateRequiredFields({ deckId, vector, model }, ['deckId', 'vector', 'model'])
-      
+
       const existing = await this.findByDeckId(deckId)
-      
+
       if (existing) {
         await db
           .update(deckEmbeddings)
           .set({
-            vector: JSON.stringify(vector),
+            vector,
             dim: vector.length,
             model,
             updatedAt: new Date(),
@@ -52,7 +52,7 @@ export class DeckEmbeddingRepository extends BaseRepository {
           .insert(deckEmbeddings)
           .values({
             deckId,
-            vector: JSON.stringify(vector),
+            vector,
             dim: vector.length,
             model,
           })
@@ -85,7 +85,7 @@ export class DeckEmbeddingRepository extends BaseRepository {
       
       // Calculate similarities
       const similarities = allEmbeddings.map(item => {
-        const vector = JSON.parse(item.vector as string) as number[]
+        const vector = item.vector as number[]
         const similarity = this.cosineSimilarity(currentVector, vector)
         return {
           id: item.deck.id,

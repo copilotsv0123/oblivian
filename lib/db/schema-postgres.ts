@@ -1,4 +1,4 @@
-import { pgTable, text, integer, real, boolean, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { pgTable, text, integer, real, boolean, timestamp, uuid, vector } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
 export const users = pgTable('users', {
@@ -96,7 +96,7 @@ export const deckUsage = pgTable('deck_usage', {
 export const deckEmbeddings = pgTable('deck_embeddings', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   deckId: uuid('deck_id').notNull().references(() => decks.id, { onDelete: 'cascade' }),
-  vector: text('vector').notNull(), // JSON string
+  vector: vector('vector', { dimensions: 1536 }).notNull(),
   dim: integer('dim').notNull(),
   model: text('model').notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

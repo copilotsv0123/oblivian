@@ -1,0 +1,1 @@
+ALTER TABLE "deck_embeddings" ALTER COLUMN "vector" SET DATA TYPE vector(1536);
