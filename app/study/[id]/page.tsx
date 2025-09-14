@@ -49,7 +49,8 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
       })
       if (!sessionRes.ok) {
         if (sessionRes.status === 401) {
-          router.push('/login')
+          const returnUrl = encodeURIComponent(`/study/${resolvedParams.id}`)
+          router.push(`/login?returnUrl=${returnUrl}`)
           return
         }
         throw new Error('Failed to create session')

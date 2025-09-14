@@ -60,7 +60,8 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
 
       if (!deckRes.ok) {
         if (deckRes.status === 401) {
-          router.push('/login')
+          const returnUrl = encodeURIComponent(`/decks/${resolvedParams.id}`)
+          router.push(`/login?returnUrl=${returnUrl}`)
           return
         }
         throw new Error('Failed to fetch deck')
