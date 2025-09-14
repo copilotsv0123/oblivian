@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a78bfa;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect x="10" y="10" width="160" height="160" rx="32" fill="url(#gradient)" />
+
+  <!-- Stylized "O" for Oblivian with card elements -->
+  <g fill="white">
+    <!-- Back card -->
+    <rect x="50" y="45" width="80" height="100" rx="8" opacity="0.4" transform="rotate(-5 90 95)"/>
+
+    <!-- Middle card -->
+    <rect x="50" y="40" width="80" height="100" rx="8" opacity="0.6" transform="rotate(3 90 90)"/>
+
+    <!-- Front card with "O" -->
+    <rect x="50" y="40" width="80" height="100" rx="8" opacity="1"/>
+
+    <!-- "O" letter inside the card -->
+    <circle cx="90" cy="90" r="28" fill="url(#gradient)" stroke="white" stroke-width="8"/>
+    <circle cx="90" cy="90" r="16" fill="white"/>
+  </g>
+</svg>
