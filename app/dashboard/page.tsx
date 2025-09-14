@@ -213,7 +213,7 @@ export default function DashboardPage() {
                   <span className="px-2 py-1 bg-primary/10 text-primary rounded">
                     {deck.level}
                   </span>
-                  <span className="px-2 py-1 bg-secondary/10 text-secondary-dark rounded">
+                  <span className="px-2 py-1 bg-secondary/10 text-secondary-foreground rounded">
                     {deck.language}
                   </span>
                   {deck.cardCount !== undefined && (
