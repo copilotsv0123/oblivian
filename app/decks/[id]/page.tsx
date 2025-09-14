@@ -349,9 +349,9 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
               })}
             </div>
           ) : (
-            <div className="relative h-48 overflow-hidden rounded-lg">
+            <div className="relative h-96 overflow-hidden rounded-lg">
               <div className="grid gap-[1px] md:grid-cols-2 lg:grid-cols-3">
-                {[0, 1, 2, 3, 4, 5].map((i) => (
+                {Array.from({ length: 27 }, (_, i) => i).map((i) => (
                   <div key={i} className="card opacity-60">
                     <div className="space-y-2">
                       <div className="h-4 bg-gray-200 rounded"></div>
