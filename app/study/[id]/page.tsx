@@ -37,6 +37,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   const [cardStartTime, setCardStartTime] = useState<number>(0)
   const [warning, setWarning] = useState<string | null>(null)
   const [deckTitle, setDeckTitle] = useState<string>('')
+  const [autoRevealSeconds, setAutoRevealSeconds] = useState<number>(5)
   const [timeRemaining, setTimeRemaining] = useState<number>(5)
   const sessionStartTime = useRef<number>(0)
   const timerInterval = useRef<NodeJS.Timeout | null>(null)
@@ -67,11 +68,13 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
       setStats(queueData.stats)
       setWarning(queueData.warning)
 
-      // Fetch deck info for title
+      // Fetch deck info for title and auto reveal seconds
       const deckRes = await fetch(`/api/decks/${resolvedParams.id}`)
       if (deckRes.ok) {
         const deckData = await deckRes.json()
         setDeckTitle(deckData.deck.title)
+        setAutoRevealSeconds(deckData.deck.autoRevealSeconds || 5)
+        setTimeRemaining(deckData.deck.autoRevealSeconds || 5)
       }
 
       // Start session timer
@@ -144,7 +147,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
       // Start new timer
       autoAnswerTimer.current = setTimeout(() => {
         handleConfidenceSelect('dont_know')
-      }, 5000)
+      }, autoRevealSeconds * 1000)
 
       return () => {
         if (autoAnswerTimer.current) {
@@ -179,13 +182,13 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
         setSelectedConfidence(null)
         setShowAdvancedNotes(false)
         setFrozenTime(0)
-        setTimeRemaining(5)
+        setTimeRemaining(autoRevealSeconds)
         setCardStartTime(Date.now())
 
         // Start auto-answer timer for next card
         autoAnswerTimer.current = setTimeout(() => {
           handleConfidenceSelect('dont_know')
-        }, 5000)
+        }, autoRevealSeconds * 1000)
       } else {
         // End session
         if (timerInterval.current) {
@@ -387,7 +390,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
                         strokeWidth="3"
                         fill="none"
                         strokeDasharray="100.53"
-                        strokeDashoffset={`${100.53 - (timeRemaining / 5) * 100.53}`}
+                        strokeDashoffset={`${100.53 - (timeRemaining / autoRevealSeconds) * 100.53}`}
                         className="text-primary transition-all duration-1000 ease-linear"
                       />
                     </svg>

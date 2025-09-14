@@ -15,6 +15,7 @@ export class DeckRepository extends BaseRepository {
           level: decks.level,
           language: decks.language,
           isPublic: decks.isPublic,
+          autoRevealSeconds: decks.autoRevealSeconds,
           createdAt: decks.createdAt,
           updatedAt: decks.updatedAt,
           cardCount: sql<number>`(SELECT COUNT(*) FROM cards WHERE deck_id = decks.id)`.as('card_count')
@@ -44,6 +45,7 @@ export class DeckRepository extends BaseRepository {
           level: decks.level,
           language: decks.language,
           isPublic: decks.isPublic,
+          autoRevealSeconds: decks.autoRevealSeconds,
           createdAt: decks.createdAt,
           updatedAt: decks.updatedAt,
           cardCount: sql<number>`(SELECT COUNT(*) FROM cards WHERE deck_id = decks.id)`.as('card_count')

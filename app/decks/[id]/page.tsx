@@ -286,7 +286,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                 return (
                   <div
                     key={card.id}
-                    className={`card transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:border-indigo-500 hover:card-hover-gradient hover:z-10 relative ${
+                    className={`card group transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:border-indigo-500 hover:card-hover-gradient hover:z-10 relative ${
                       index % 2 === 0 ? 'hover:rotate-1' : 'hover:-rotate-1'
                     } ${card.advancedNotes ? 'cursor-pointer' : ''}`}
                   onClick={() => {
@@ -308,7 +308,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                             {card.front}
                           </p>
                           <div className="text-gray-600 mt-2">
-                            <span>{card.back || ''}</span>
+                            <span className="md:blur-[3px] md:group-hover:blur-none transition-all duration-200">{card.back || ''}</span>
                             {card.advancedNotes && (
                               <span className="inline-flex items-center gap-0.5 ml-2 text-sm text-indigo-600 align-middle">
                                 <span className="text-xs">{expandedCards.has(card.id) ? 'Less' : 'More'}</span>

@@ -151,7 +151,7 @@ export default function DashboardPage() {
                 )}
                 {/* Hover overlay with button */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                  <div className="btn-glass px-6 py-3 transform scale-0 group-hover:scale-100 transition-transform duration-150">
+                  <div className="btn-glass px-6 py-3 transform scale-90 group-hover:scale-100 transition-transform duration-150">
                     Let's go! 🚀
                   </div>
                 </div>
