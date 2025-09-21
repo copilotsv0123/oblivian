@@ -5,6 +5,13 @@ import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base
 import { CreateDeckInput, UpdateDeckInput, DeckFilters, parseTagsFromJson, tagsToJson, normalizeTags } from '@/lib/types/decks'
 
 export class DeckRepository extends BaseRepository {
+  // Helper function to transform raw deck results and parse JSON tags
+  private transformDeckResults<T extends { tags: string }>(results: T[]): (Omit<T, 'tags'> & { tags: string[] })[] {
+    return results.map(deck => ({
+      ...deck,
+      tags: parseTagsFromJson(deck.tags)
+    }))
+  }
   async findAll(includeCardCount = false, userId?: string) {
     if (includeCardCount) {
       const query = db
@@ -28,20 +35,21 @@ export class DeckRepository extends BaseRepository {
         .from(decks)
         .orderBy(desc(decks.updatedAt))
 
-      return query
+      const results = await query
+      return this.transformDeckResults(results)
     }
 
-    const query = db
+    const results = await db
       .select()
       .from(decks)
       .orderBy(desc(decks.updatedAt))
 
-    return query
+    return this.transformDeckResults(results)
   }
 
   async findForDashboard(userId: string) {
     // Get ALL decks with starred status for current user
-    const query = db
+    const results = await db
       .select({
         id: decks.id,
         ownerUserId: decks.ownerUserId,
@@ -61,12 +69,12 @@ export class DeckRepository extends BaseRepository {
       // No WHERE clause - show ALL decks
       .orderBy(desc(decks.updatedAt))
 
-    return query
+    return this.transformDeckResults(results)
   }
 
   async findByUserId(userId: string, includeCardCount = false) {
     if (includeCardCount) {
-      const query = db
+      const results = await db
         .select({
           id: decks.id,
           ownerUserId: decks.ownerUserId,
@@ -86,10 +94,10 @@ export class DeckRepository extends BaseRepository {
         .where(eq(decks.ownerUserId, userId))
         .orderBy(desc(decks.updatedAt))
 
-      return query
+      return this.transformDeckResults(results)
     }
 
-    const query = db
+    const results = await db
       .select({
         id: decks.id,
         ownerUserId: decks.ownerUserId,
@@ -108,11 +116,11 @@ export class DeckRepository extends BaseRepository {
       .where(eq(decks.ownerUserId, userId))
       .orderBy(desc(decks.updatedAt))
 
-    return query
+    return this.transformDeckResults(results)
   }
 
   async findById(deckId: string, userId?: string) {
-    const baseQuery = db
+    const results = await db
       .select({
         id: decks.id,
         ownerUserId: decks.ownerUserId,
@@ -132,11 +140,12 @@ export class DeckRepository extends BaseRepository {
       .from(decks)
       .where(eq(decks.id, deckId))
 
-    return baseQuery.then(res => res[0] || null)
+    const transformedResults = this.transformDeckResults(results)
+    return transformedResults[0] || null
   }
 
   async findByIdAndUserId(deckId: string, userId: string) {
-    return db
+    const results = await db
       .select({
         id: decks.id,
         ownerUserId: decks.ownerUserId,
@@ -156,7 +165,9 @@ export class DeckRepository extends BaseRepository {
         eq(decks.id, deckId),
         eq(decks.ownerUserId, userId)
       ))
-      .then(res => res[0] || null)
+
+    const transformedResults = this.transformDeckResults(results)
+    return transformedResults[0] || null
   }
 
   async validateOwnership(deckId: string, userId: string): Promise<boolean> {
@@ -181,7 +192,7 @@ export class DeckRepository extends BaseRepository {
       this.validateRequiredFields({ deckId, userId }, ['deckId', 'userId'])
 
       // Allow any user to view any deck (simulating all decks are public)
-      const deck = await db
+      const results = await db
         .select({
           id: decks.id,
           ownerUserId: decks.ownerUserId,
@@ -190,6 +201,7 @@ export class DeckRepository extends BaseRepository {
           level: decks.level,
           language: decks.language,
           isPublic: decks.isPublic,
+          tags: decks.tags,
           autoRevealSeconds: decks.autoRevealSeconds,
           starred: sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred'),
           createdAt: decks.createdAt,
@@ -197,7 +209,9 @@ export class DeckRepository extends BaseRepository {
         })
         .from(decks)
         .where(eq(decks.id, deckId))
-        .then(res => res[0] || null)
+
+      const transformedResults = this.transformDeckResults(results)
+      const deck = transformedResults[0] || null
 
       if (!deck) {
         return null
