@@ -122,40 +122,34 @@ export default function DashboardPage() {
           <StudyHeatmap />
         </div>
 
-        <div className="flex justify-between items-start mb-8">
-          <div className="flex items-center gap-4 flex-1">
-            <h2 className="text-3xl font-bold text-primary">Decks</h2>
-            {!loading && allDecks.length > 0 && (
-              <div className="flex items-center gap-4 flex-1 max-w-2xl">
-                <input
-                  type="text"
-                  placeholder="Search decks..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input flex-1"
-                />
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showStarredOnly}
-                    onChange={(e) => setShowStarredOnly(e.target.checked)}
-                    className="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 focus:ring-2"
-                  />
-                  <span className="text-sm text-gray-600">My favorites only</span>
-                </label>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Tag Filter */}
-        {!loading && availableTags.length > 0 && (
-          <div className="mb-6">
-            <TagFilter
-              selectedTags={selectedTags}
-              onTagsChange={setSelectedTags}
-              availableTags={availableTags}
+        {!loading && allDecks.length > 0 && (
+          <div className="flex items-center gap-4 mb-8">
+            <input
+              type="text"
+              placeholder="Search decks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input w-80"
             />
+
+            {/* Tag Filter next to search */}
+            {availableTags.length > 0 && (
+              <TagFilter
+                selectedTags={selectedTags}
+                onTagsChange={setSelectedTags}
+                availableTags={availableTags}
+              />
+            )}
+
+            <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={showStarredOnly}
+                onChange={(e) => setShowStarredOnly(e.target.checked)}
+                className="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 focus:ring-2"
+              />
+              <span className="text-sm text-gray-600">My favorites only</span>
+            </label>
           </div>
         )}
 
