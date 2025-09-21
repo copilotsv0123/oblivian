@@ -73,17 +73,11 @@ const TOOLS = [
           items: {
             type: 'object',
             properties: {
-              type: {
-                type: 'string',
-                enum: ['basic', 'cloze', 'multiple_choice', 'explanation'],
-              },
               front: { type: 'string' },
               back: { type: 'string' },
-              choices: { type: 'string' },
-              explanation: { type: 'string' },
               advancedNotes: { type: 'string', description: 'Advanced notes with deeper insights' },
             },
-            required: ['type', 'front'],
+            required: ['front', 'back', 'advancedNotes'],
           },
         },
       },
@@ -296,7 +290,13 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
                 throw new Error(`Cannot create ${args.cards.length} cards. Deck currently has ${currentCardCount} cards. Maximum is ${MAX_CARDS_PER_DECK} cards per deck. You can add up to ${remainingSlots} more cards.`)
               }
 
-              const batchResult = await cardRepository.createBatchWithOwnershipCheck(args.deckId, userId, args.cards)
+              // Force all cards to be 'basic' type
+              const cardsWithType = args.cards.map((card: any) => ({
+                ...card,
+                type: 'basic'
+              }))
+
+              const batchResult = await cardRepository.createBatchWithOwnershipCheck(args.deckId, userId, cardsWithType)
               console.log('Batch result:', { success: batchResult.success, count: batchResult.count })
 
               return {
