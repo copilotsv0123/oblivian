@@ -15,6 +15,13 @@
       "when": 1757814706407,
       "tag": "0001_plain_johnny_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1758447691666,
+      "tag": "0002_wealthy_cobalt_man",
+      "breakpoints": true
     }
   ]
 }

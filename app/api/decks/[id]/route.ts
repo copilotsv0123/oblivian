@@ -17,14 +17,15 @@ export const GET = withApiHandler(async ({ user }: ApiContext, routeContext: any
 export const PUT = withApiHandler(async ({ user, request }: ApiContext, routeContext: any) => {
   const { params } = routeContext as { params: Promise<{ id: string }> }
   const { id } = await params
-  const { title, description, level, language, isPublic } = await getJsonBody(request)
+  const { title, description, level, language, isPublic, tags } = await getJsonBody(request)
 
-  const updatedDeck = await deckRepository.updateWithOwnershipCheck(id, user.id, {
+  const updatedDeck = await deckRepository.updateWithOwnershipCheckWithTags(id, user.id, {
     title,
     description,
     level,
     language,
     isPublic,
+    tags,
   })
 
   return { deck: updatedDeck }

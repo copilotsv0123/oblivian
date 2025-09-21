@@ -1,7 +1,8 @@
 import { db } from '@/lib/db'
 import { decks, cards, userDeckStars, type Deck, type NewDeck } from '@/lib/db'
-import { eq, and, desc, sql, or } from 'drizzle-orm'
+import { eq, and, desc, sql, or, like, inArray } from 'drizzle-orm'
 import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base-repository'
+import { CreateDeckInput, UpdateDeckInput, DeckFilters, parseTagsFromJson, tagsToJson, normalizeTags } from '@/lib/types/decks'
 
 export class DeckRepository extends BaseRepository {
   async findAll(includeCardCount = false, userId?: string) {
@@ -207,35 +208,6 @@ export class DeckRepository extends BaseRepository {
     }
   }
 
-  async create(data: {
-    userId: string
-    title: string
-    description?: string
-    level?: 'simple' | 'mid' | 'expert'
-    language?: string
-    isPublic?: boolean
-  }): Promise<CreateResult<Deck>> {
-    try {
-      this.validateRequiredFields(data, ['userId', 'title'])
-      
-      const [newDeck] = await db.insert(decks).values({
-        ownerUserId: data.userId,
-        title: data.title,
-        description: data.description || null,
-        level: data.level || 'simple',
-        language: data.language || 'en',
-        isPublic: data.isPublic || false,
-      }).returning()
-      
-      return {
-        success: true,
-        data: newDeck,
-        id: newDeck.id,
-      }
-    } catch (error) {
-      this.handleError(error, 'create')
-    }
-  }
 
   async update(deckId: string, data: Partial<{
     title: string
@@ -393,6 +365,196 @@ export class DeckRepository extends BaseRepository {
       return await this.findById(deckId, userId)
     } catch (error) {
       this.handleError(error, 'toggleStar')
+    }
+  }
+
+  // Tag-related methods
+  async findByFilters(userId: string, filters: DeckFilters = {}, includeCardCount = false) {
+    try {
+      this.validateRequiredFields({ userId }, ['userId'])
+
+      const baseSelect = {
+        id: decks.id,
+        ownerUserId: decks.ownerUserId,
+        title: decks.title,
+        description: decks.description,
+        level: decks.level,
+        language: decks.language,
+        isPublic: decks.isPublic,
+        tags: decks.tags,
+        autoRevealSeconds: decks.autoRevealSeconds,
+        starred: sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred'),
+        createdAt: decks.createdAt,
+        updatedAt: decks.updatedAt,
+      }
+
+      if (includeCardCount) {
+        Object.assign(baseSelect, {
+          cardCount: sql<number>`(SELECT COUNT(*) FROM cards WHERE deck_id = decks.id)`.as('card_count')
+        })
+      }
+
+      const baseQuery = db.select(baseSelect).from(decks)
+
+      // Build where conditions
+      const conditions = []
+
+      // Show user's decks + all public decks
+      conditions.push(or(eq(decks.ownerUserId, userId), eq(decks.isPublic, true)))
+
+      // Search filter
+      if (filters.search) {
+        conditions.push(
+          or(
+            like(decks.title, `%${filters.search}%`),
+            like(decks.description, `%${filters.search}%`)
+          )
+        )
+      }
+
+      // Level filter
+      if (filters.level) {
+        conditions.push(eq(decks.level, filters.level))
+      }
+
+      // Language filter
+      if (filters.language) {
+        conditions.push(eq(decks.language, filters.language))
+      }
+
+      // Tags filter - check if any of the provided tags exist in the deck's tags JSON array
+      if (filters.tags && filters.tags.length > 0) {
+        const tagConditions = filters.tags.map(tag =>
+          sql`JSON_CONTAINS(${decks.tags}, ${JSON.stringify([tag.toLowerCase()])})`
+        )
+        conditions.push(or(...tagConditions))
+      }
+
+      const results = await baseQuery
+        .where(and(...conditions))
+        .orderBy(desc(decks.updatedAt))
+
+      // Post-process to handle starred filter and parse tags
+      let processedResults = results.map(deck => ({
+        ...deck,
+        tags: parseTagsFromJson(deck.tags)
+      }))
+
+      // Apply starred filter in memory (since it requires the computed starred field)
+      if (filters.starred !== undefined) {
+        processedResults = processedResults.filter(deck => deck.starred === filters.starred)
+      }
+
+      return processedResults
+    } catch (error) {
+      this.handleError(error, 'findByFilters')
+    }
+  }
+
+  async getUserTags(userId: string): Promise<string[]> {
+    try {
+      this.validateRequiredFields({ userId }, ['userId'])
+
+      const userDecks = await db
+        .select({ tags: decks.tags })
+        .from(decks)
+        .where(eq(decks.ownerUserId, userId))
+
+      // Extract all unique tags from user's decks
+      const allTags = new Set<string>()
+
+      userDecks.forEach(deck => {
+        const tags = parseTagsFromJson(deck.tags)
+        tags.forEach(tag => allTags.add(tag))
+      })
+
+      return Array.from(allTags).sort()
+    } catch (error) {
+      this.handleError(error, 'getUserTags')
+    }
+  }
+
+  // Override create method to handle tags
+  async create(input: CreateDeckInput): Promise<CreateResult<any>> {
+    try {
+      this.validateRequiredFields(input, ['userId', 'title'])
+
+      const normalizedTags = input.tags ? normalizeTags(input.tags) : []
+
+      const [newDeck] = await db.insert(decks).values({
+        ownerUserId: input.userId,
+        title: input.title,
+        description: input.description || null,
+        level: input.level || 'simple',
+        language: input.language || 'en',
+        isPublic: input.isPublic || false,
+        tags: tagsToJson(normalizedTags),
+      }).returning()
+
+      return {
+        success: true,
+        data: {
+          ...newDeck,
+          tags: normalizedTags,
+          starred: false,
+          cardCount: 0
+        },
+        id: newDeck.id,
+      }
+    } catch (error) {
+      this.handleError(error, 'create')
+    }
+  }
+
+  // Update the existing updateWithOwnershipCheck to handle tags
+  async updateWithOwnershipCheckWithTags(deckId: string, userId: string, data: UpdateDeckInput) {
+    try {
+      this.validateRequiredFields({ deckId, userId }, ['deckId', 'userId'])
+
+      // First check ownership
+      const existingDeck = await db
+        .select()
+        .from(decks)
+        .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
+        .then(res => res[0] || null)
+
+      if (!existingDeck) {
+        throw new Error('not found: Deck not found')
+      }
+
+      const updateData: any = {}
+
+      if (data.title !== undefined) updateData.title = data.title
+      if (data.description !== undefined) updateData.description = data.description
+      if (data.level !== undefined) updateData.level = data.level
+      if (data.language !== undefined) updateData.language = data.language
+      if (data.isPublic !== undefined) updateData.isPublic = data.isPublic
+      if (data.tags !== undefined) {
+        const normalizedTags = normalizeTags(data.tags)
+        updateData.tags = tagsToJson(normalizedTags)
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        return {
+          ...existingDeck,
+          tags: parseTagsFromJson(existingDeck.tags)
+        }
+      }
+
+      updateData.updatedAt = new Date()
+
+      const [updated] = await db
+        .update(decks)
+        .set(updateData)
+        .where(and(eq(decks.id, deckId), eq(decks.ownerUserId, userId)))
+        .returning()
+
+      return {
+        ...updated,
+        tags: parseTagsFromJson(updated.tags)
+      }
+    } catch (error) {
+      this.handleError(error, 'updateWithOwnershipCheckWithTags')
     }
   }
 }

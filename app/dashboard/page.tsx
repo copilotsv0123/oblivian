@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
 import StudyHeatmap from '@/components/StudyHeatmap'
+import TagFilter from '@/components/TagFilter'
 
 interface Deck {
   id: string
@@ -13,6 +14,7 @@ interface Deck {
   language: string
   isPublic: boolean
   starred: boolean
+  tags: string[]
   createdAt: string
   updatedAt: string
   cardCount?: number
@@ -25,6 +27,8 @@ export default function DashboardPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [showStarredOnly, setShowStarredOnly] = useState(false)
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [availableTags, setAvailableTags] = useState<string[]>([])
 
   const fetchDecks = useCallback(async () => {
     try {
@@ -35,6 +39,15 @@ export default function DashboardPage() {
       const data = await res.json()
       setAllDecks(data.decks)
       setDecks(data.decks)
+
+      // Extract unique tags from all decks
+      const allTagsSet = new Set<string>()
+      data.decks.forEach((deck: Deck) => {
+        if (deck.tags) {
+          deck.tags.forEach((tag: string) => allTagsSet.add(tag))
+        }
+      })
+      setAvailableTags(Array.from(allTagsSet).sort())
     } catch (error) {
       console.error('Error fetching decks:', error)
     } finally {
@@ -70,13 +83,20 @@ export default function DashboardPage() {
     fetchDecks()
   }, [fetchDecks])
 
-  // Filter decks based on search query and starred filter
+  // Filter decks based on search query, starred filter, and tags
   useEffect(() => {
     let filtered = [...allDecks]
 
     // Apply starred filter
     if (showStarredOnly) {
       filtered = filtered.filter(deck => deck.starred)
+    }
+
+    // Apply tag filter
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter(deck =>
+        deck.tags && selectedTags.some(tag => deck.tags.includes(tag))
+      )
     }
 
     // Apply search filter
@@ -86,12 +106,13 @@ export default function DashboardPage() {
         deck.title.toLowerCase().includes(query) ||
         (deck.description && deck.description.toLowerCase().includes(query)) ||
         deck.level.toLowerCase().includes(query) ||
-        deck.language.toLowerCase().includes(query)
+        deck.language.toLowerCase().includes(query) ||
+        (deck.tags && deck.tags.some(tag => tag.toLowerCase().includes(query)))
       )
     }
 
     setDecks(filtered)
-  }, [allDecks, searchQuery, showStarredOnly])
+  }, [allDecks, searchQuery, showStarredOnly, selectedTags])
 
   return (
     <AppLayout>
@@ -126,6 +147,17 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* Tag Filter */}
+        {!loading && availableTags.length > 0 && (
+          <div className="mb-6">
+            <TagFilter
+              selectedTags={selectedTags}
+              onTagsChange={setSelectedTags}
+              availableTags={availableTags}
+            />
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-12">
@@ -198,7 +230,24 @@ export default function DashboardPage() {
                     {deck.title}
                   </h3>
                   {deck.description && (
-                    <p className="text-gray-600">{deck.description}</p>
+                    <p className="text-gray-600 mb-2">{deck.description}</p>
+                  )}
+                  {deck.tags && deck.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {deck.tags.slice(0, 3).map((tag, tagIndex) => (
+                        <span
+                          key={tagIndex}
+                          className="inline-flex items-center px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      {deck.tags.length > 3 && (
+                        <span className="text-xs text-gray-500">
+                          +{deck.tags.length - 3} more
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
                 {deck.cardCount !== undefined && (

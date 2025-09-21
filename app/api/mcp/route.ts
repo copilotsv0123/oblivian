@@ -57,6 +57,12 @@ const TOOLS = [
           description: 'Whether the deck should be publicly visible',
           default: false
         },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of tags to categorize the deck (e.g., ["tech", "programming", "algorithms"])',
+          default: []
+        },
       },
       required: ['title'],
     },
@@ -184,6 +190,11 @@ const TOOLS = [
           type: 'boolean',
           description: 'Whether the deck should be publicly visible',
         },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'New array of tags to categorize the deck (e.g., ["tech", "programming", "algorithms"])',
+        },
       },
       required: ['deckId'],
     },
@@ -263,6 +274,7 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
               level: args.level || 'simple',
               language: args.language || 'en',
               isPublic: args.isPublic || false,
+              tags: args.tags || [],
             })
             
             return {
@@ -482,9 +494,10 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             if (args.level !== undefined) updateData.level = args.level
             if (args.language !== undefined) updateData.language = args.language
             if (args.isPublic !== undefined) updateData.isPublic = args.isPublic
+            if (args.tags !== undefined) updateData.tags = args.tags
             if (args.autoRevealSeconds !== undefined) updateData.autoRevealSeconds = args.autoRevealSeconds
 
-            const updatedDeck = await deckRepository.updateWithOwnershipCheck(args.deckId, userId, updateData)
+            const updatedDeck = await deckRepository.updateWithOwnershipCheckWithTags(args.deckId, userId, updateData)
 
             // Fetch the deck again to get the starred status
             const deckWithStarred = await deckRepository.findById(args.deckId, userId)

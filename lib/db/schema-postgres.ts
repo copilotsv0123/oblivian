@@ -34,6 +34,7 @@ export const decks = pgTable('decks', {
   level: text('level').notNull().default('simple'),
   language: text('language').notNull().default('en'),
   isPublic: boolean('is_public').notNull().default(false),
+  tags: text('tags').notNull().default('[]'), // JSON array of strings
   autoRevealSeconds: integer('auto_reveal_seconds').notNull().default(5),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
