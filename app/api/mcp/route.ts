@@ -281,6 +281,30 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             console.log('Cards data:', JSON.stringify(args.cards, null, 2))
 
             try {
+              // Validate required parameters
+              if (!args.deckId) {
+                throw new Error('deckId is required')
+              }
+              if (!args.cards || !Array.isArray(args.cards)) {
+                throw new Error('cards array is required')
+              }
+              if (args.cards.length === 0) {
+                throw new Error('At least one card is required')
+              }
+
+              // Validate each card has required fields
+              args.cards.forEach((card: any, index: number) => {
+                if (!card.front) {
+                  throw new Error(`Card at index ${index}: front field is required`)
+                }
+                if (!card.back) {
+                  throw new Error(`Card at index ${index}: back field is required`)
+                }
+                if (!card.advancedNotes) {
+                  throw new Error(`Card at index ${index}: advancedNotes field is required`)
+                }
+              })
+
               // Check card count limit
               const currentCardCount = await cardRepository.countByDeckId(args.deckId)
               const totalAfterImport = currentCardCount + args.cards.length
@@ -296,8 +320,13 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
                 type: 'basic'
               }))
 
+              console.log('Creating cards with validated data:', JSON.stringify(cardsWithType, null, 2))
               const batchResult = await cardRepository.createBatchWithOwnershipCheck(args.deckId, userId, cardsWithType)
               console.log('Batch result:', { success: batchResult.success, count: batchResult.count })
+
+              if (!batchResult.success) {
+                throw new Error('Failed to create cards - no success flag returned')
+              }
 
               return {
                 jsonrpc: '2.0',
@@ -313,8 +342,23 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
                 },
               }
             } catch (error) {
-              console.error('MCP create_cards_batch error:', error)
-              throw error
+              console.error('MCP create_cards_batch error:', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : undefined,
+                args: { deckId: args.deckId, cardsCount: args.cards?.length },
+                userId
+              })
+
+              // Return proper MCP error response instead of throwing
+              return {
+                jsonrpc: '2.0',
+                id: request.id,
+                error: {
+                  code: -32603,
+                  message: 'Card creation failed',
+                  data: error instanceof Error ? error.message : 'Unknown error',
+                },
+              }
             }
 
           case 'list_cards':

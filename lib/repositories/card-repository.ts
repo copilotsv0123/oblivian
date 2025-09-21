@@ -601,6 +601,10 @@ export class CardRepository extends BaseRepository {
     if (!input.back) {
       throw new Error('Basic cards require a back field')
     }
+
+    if (!input.advancedNotes) {
+      throw new Error('Basic cards require advancedNotes field')
+    }
   }
 }
 
