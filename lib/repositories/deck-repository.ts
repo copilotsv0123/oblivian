@@ -16,6 +16,7 @@ export class DeckRepository extends BaseRepository {
           level: decks.level,
           language: decks.language,
           isPublic: decks.isPublic,
+          tags: decks.tags,
           autoRevealSeconds: decks.autoRevealSeconds,
           starred: userId
             ? sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred')
@@ -49,6 +50,7 @@ export class DeckRepository extends BaseRepository {
         level: decks.level,
         language: decks.language,
         isPublic: decks.isPublic,
+        tags: decks.tags,
         autoRevealSeconds: decks.autoRevealSeconds,
         starred: sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred'),
         createdAt: decks.createdAt,
@@ -73,6 +75,7 @@ export class DeckRepository extends BaseRepository {
           level: decks.level,
           language: decks.language,
           isPublic: decks.isPublic,
+          tags: decks.tags,
           autoRevealSeconds: decks.autoRevealSeconds,
           starred: sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred'),
           createdAt: decks.createdAt,
@@ -95,6 +98,7 @@ export class DeckRepository extends BaseRepository {
         level: decks.level,
         language: decks.language,
         isPublic: decks.isPublic,
+        tags: decks.tags,
         autoRevealSeconds: decks.autoRevealSeconds,
         starred: sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred'),
         createdAt: decks.createdAt,
@@ -117,6 +121,7 @@ export class DeckRepository extends BaseRepository {
         level: decks.level,
         language: decks.language,
         isPublic: decks.isPublic,
+        tags: decks.tags,
         autoRevealSeconds: decks.autoRevealSeconds,
         starred: userId
           ? sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred')
@@ -140,6 +145,7 @@ export class DeckRepository extends BaseRepository {
         level: decks.level,
         language: decks.language,
         isPublic: decks.isPublic,
+        tags: decks.tags,
         autoRevealSeconds: decks.autoRevealSeconds,
         starred: sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred'),
         createdAt: decks.createdAt,
