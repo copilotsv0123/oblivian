@@ -6,6 +6,7 @@ import { BaseRepository, CreateResult, PaginatedResult } from './base-repository
 export interface CreateReviewInput {
   userId: string
   cardId: string
+  sessionId?: string
   rating: 'again' | 'hard' | 'good' | 'easy'
   scheduledAt: Date
   intervalDays: number
@@ -160,6 +161,7 @@ export class ReviewRepository extends BaseRepository {
         .values({
           userId: input.userId,
           cardId: input.cardId,
+          sessionId: input.sessionId || null,
           rating: input.rating,
           scheduledAt: input.scheduledAt,
           intervalDays: input.intervalDays,

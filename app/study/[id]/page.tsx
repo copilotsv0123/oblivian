@@ -4,6 +4,7 @@ import { useState, useEffect, use, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
+import StudyCompletionOverlay from '@/components/StudyCompletionOverlay'
 
 interface Card {
   id: string
@@ -13,6 +14,7 @@ interface Card {
   choices?: string
   explanation?: string
   advancedNotes?: string
+  mnemotechnic?: string
 }
 
 interface StudyStats {
@@ -39,6 +41,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
   const [deckTitle, setDeckTitle] = useState<string>('')
   const [autoRevealSeconds, setAutoRevealSeconds] = useState<number>(5)
   const [timeRemaining, setTimeRemaining] = useState<number>(5)
+  const [showCompletionScreen, setShowCompletionScreen] = useState(false)
   const sessionStartTime = useRef<number>(0)
   const timerInterval = useRef<NodeJS.Timeout | null>(null)
   const autoAnswerTimer = useRef<NodeJS.Timeout | null>(null)
@@ -161,42 +164,49 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
     if (!cards[currentIndex]) return
 
     const timeSpent = Math.floor((Date.now() - cardStartTime) / 1000)
+    const currentCardId = cards[currentIndex].id
 
-    try {
-      if (rating !== 'skip') {
-        await fetch(`/api/study/${resolvedParams.id}/review`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            cardId: cards[currentIndex].id,
-            rating,
-            sessionId,
-            timeSpent,
-          }),
-        })
+    // Update UI immediately (optimistic update)
+    if (currentIndex < cards.length - 1) {
+      setCurrentIndex(currentIndex + 1)
+      setShowAnswer(false)
+      setSelectedConfidence(null)
+      setShowAdvancedNotes(false)
+      setFrozenTime(0)
+      setTimeRemaining(autoRevealSeconds)
+      setCardStartTime(Date.now())
+
+      // Start auto-answer timer for next card
+      autoAnswerTimer.current = setTimeout(() => {
+        handleConfidenceSelect('dont_know')
+      }, autoRevealSeconds * 1000)
+    } else {
+      // End session - wait for completion before showing overlay
+      if (timerInterval.current) {
+        clearInterval(timerInterval.current)
       }
 
-      if (currentIndex < cards.length - 1) {
-        setCurrentIndex(currentIndex + 1)
-        setShowAnswer(false)
-        setSelectedConfidence(null)
-        setShowAdvancedNotes(false)
-        setFrozenTime(0)
-        setTimeRemaining(autoRevealSeconds)
-        setCardStartTime(Date.now())
+      // For the last card, we need to wait for both API calls to complete
+      // before showing the achievement overlay
+      const promises = []
 
-        // Start auto-answer timer for next card
-        autoAnswerTimer.current = setTimeout(() => {
-          handleConfidenceSelect('dont_know')
-        }, autoRevealSeconds * 1000)
-      } else {
-        // End session
-        if (timerInterval.current) {
-          clearInterval(timerInterval.current)
-        }
+      if (rating !== 'skip') {
+        promises.push(
+          fetch(`/api/study/${resolvedParams.id}/review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cardId: currentCardId,
+              rating,
+              sessionId,
+              timeSpent,
+            }),
+          })
+        )
+      }
 
-        // Update session with total time
-        await fetch(`/api/study/${resolvedParams.id}/session`, {
+      promises.push(
+        fetch(`/api/study/${resolvedParams.id}/session`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -204,13 +214,38 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
             secondsActive: sessionTime,
           }),
         })
+      )
 
-        router.push(`/decks/${resolvedParams.id}`)
-      }
-    } catch (error) {
-      console.error('Error recording review:', error)
+      // Wait for all API calls to complete before showing achievement
+      Promise.all(promises)
+        .then(() => {
+          setShowCompletionScreen(true)
+        })
+        .catch(error => {
+          console.error('Error completing session:', error)
+          // Still show completion screen even if APIs fail
+          setShowCompletionScreen(true)
+        })
+
+      return // Don't execute the async API calls below for last card
     }
-  }, [cards, currentIndex, cardStartTime, resolvedParams.id, sessionId, sessionTime, router, handleConfidenceSelect, autoRevealSeconds])
+
+    // Send API calls asynchronously (fire and forget) for non-last cards
+    if (rating !== 'skip') {
+      fetch(`/api/study/${resolvedParams.id}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cardId: currentCardId,
+          rating,
+          sessionId,
+          timeSpent,
+        }),
+      }).catch(error => {
+        console.error('Error recording review:', error)
+      })
+    }
+  }, [cards, currentIndex, cardStartTime, resolvedParams.id, sessionId, sessionTime, handleConfidenceSelect, autoRevealSeconds])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -284,6 +319,18 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
       <div className="min-h-screen bg-accent flex items-center justify-center">
         <p className="text-gray-600">Loading study session...</p>
       </div>
+    )
+  }
+
+  if (showCompletionScreen && sessionId) {
+    return (
+      <StudyCompletionOverlay
+        isVisible={showCompletionScreen}
+        deckId={resolvedParams.id}
+        sessionId={sessionId}
+        deckTitle={deckTitle}
+        onComplete={() => router.push(`/decks/${resolvedParams.id}`)}
+      />
     )
   }
 
@@ -474,6 +521,19 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
                     <div className="prose prose-sm sm:prose-lg max-w-none text-gray-700">
                       <ReactMarkdown>
                         {currentCard.advancedNotes}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                )}
+
+                {currentCard.mnemotechnic && (
+                  <div className="p-3 sm:p-4 bg-amber-50 rounded-lg border border-amber-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-amber-600 font-medium text-sm">🧠 Memory Aid</span>
+                    </div>
+                    <div className="prose prose-sm sm:prose-lg max-w-none text-gray-700">
+                      <ReactMarkdown>
+                        {currentCard.mnemotechnic}
                       </ReactMarkdown>
                     </div>
                   </div>

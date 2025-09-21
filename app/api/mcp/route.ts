@@ -82,6 +82,7 @@ const TOOLS = [
               front: { type: 'string' },
               back: { type: 'string' },
               advancedNotes: { type: 'string', description: 'Advanced notes with deeper insights' },
+              mnemotechnic: { type: 'string', description: 'Memory aid technique or mnemonic device' },
             },
             required: ['front', 'back', 'advancedNotes'],
           },

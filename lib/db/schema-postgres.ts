@@ -49,6 +49,7 @@ export const cards = pgTable('cards', {
   choices: text('choices'), // JSON string
   explanation: text('explanation'),
   advancedNotes: text('advanced_notes'),
+  mnemotechnic: text('mnemotechnic'), // Memory aid technique
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
@@ -57,6 +58,7 @@ export const reviews = pgTable('reviews', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   cardId: uuid('card_id').notNull().references(() => cards.id, { onDelete: 'cascade' }),
+  sessionId: uuid('session_id').references(() => studySessions.id, { onDelete: 'set null' }),
   rating: text('rating').notNull(),
   scheduledAt: timestamp('scheduled_at').notNull(),
   reviewedAt: timestamp('reviewed_at', { withTimezone: true }).defaultNow().notNull(),

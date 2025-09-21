@@ -66,7 +66,8 @@ export async function getCardSchedule(cardId: string, userId: string): Promise<C
 export async function scheduleReview(
   cardId: string,
   userId: string,
-  rating: ReviewRating
+  rating: ReviewRating,
+  sessionId?: string
 ): Promise<CardSchedule> {
   const schedule = await getCardSchedule(cardId, userId)
   
@@ -90,6 +91,7 @@ export async function scheduleReview(
   await reviewRepository.create({
     userId,
     cardId,
+    sessionId,
     rating,
     scheduledAt: nextCard.due,
     intervalDays: nextCard.scheduled_days,

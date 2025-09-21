@@ -65,6 +65,7 @@ export class CardRepository extends BaseRepository {
         choices: null, // Ignore choices for now
         explanation: null, // Ignore explanation for now
         advancedNotes: input.advancedNotes || null,
+        mnemotechnic: input.mnemotechnic || null,
       }).returning()
       
       const transformedCard = transformDbCardToApiCard(newCard)
@@ -97,6 +98,7 @@ export class CardRepository extends BaseRepository {
           choices: null, // Ignore choices for now
           explanation: null, // Ignore explanation for now
           advancedNotes: fullInput.advancedNotes || null,
+          mnemotechnic: fullInput.mnemotechnic || null,
         }).returning()
 
         batchCreated.push(newCard)
@@ -207,6 +209,7 @@ export class CardRepository extends BaseRepository {
     // if (input.choices !== undefined) updateData.choices = JSON.stringify(input.choices)
     // if (input.explanation !== undefined) updateData.explanation = input.explanation
     if (input.advancedNotes !== undefined) updateData.advancedNotes = input.advancedNotes
+    if (input.mnemotechnic !== undefined) updateData.mnemotechnic = input.mnemotechnic
     
     if (Object.keys(updateData).length === 0) {
       return null
@@ -359,7 +362,7 @@ export class CardRepository extends BaseRepository {
     }
   }
 
-  async updateWithOwnershipCheck(cardId: string, userId: string, updateData: { front?: string, back?: string, choices?: any, explanation?: string, advancedNotes?: string }) {
+  async updateWithOwnershipCheck(cardId: string, userId: string, updateData: UpdateCardInput) {
     try {
       this.validateRequiredFields({ cardId, userId }, ['cardId', 'userId'])
       

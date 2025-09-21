@@ -11,6 +11,7 @@ export interface BaseCard {
   type: CardType
   front: string
   advancedNotes?: string
+  mnemotechnic?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -53,6 +54,7 @@ export interface CreateCardInput {
   choices?: Choice[]
   explanation?: string
   advancedNotes?: string
+  mnemotechnic?: string
 }
 
 export interface UpdateCardInput {
@@ -62,4 +64,5 @@ export interface UpdateCardInput {
   choices?: Choice[]
   explanation?: string
   advancedNotes?: string
+  mnemotechnic?: string
 }

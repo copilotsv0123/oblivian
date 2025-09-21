@@ -17,7 +17,7 @@ export const POST = withApiHandler(async ({ user, request }: ApiContext, routeCo
     throw new Error('bad request: Invalid rating')
   }
 
-  const schedule = await scheduleReview(cardId, user.id, rating)
+  const schedule = await scheduleReview(cardId, user.id, rating, sessionId)
 
   let reviewTimeSeconds = 0
   if (sessionId) {
