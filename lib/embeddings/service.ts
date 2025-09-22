@@ -130,16 +130,24 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 }
 
 /**
- * Generate and store embedding for a deck
+ * Generate and store embedding for a deck (only if content has changed)
  */
-export async function generateDeckEmbedding(deckId: string) {
-  const combinedText = await deckEmbeddingRepository.getDeckContentForEmbedding(deckId)
+export async function generateDeckEmbedding(deckId: string, force = false) {
+  // Check if embedding needs to be updated
+  if (!force && !(await deckEmbeddingRepository.needsEmbeddingUpdate(deckId))) {
+    console.log(`[Embeddings] Skipping ${deckId} - content unchanged`)
+    const existing = await deckEmbeddingRepository.findByDeckId(deckId)
+    return existing?.vector as number[] || null
+  }
 
-  if (!combinedText) return null
+  const { content, hash } = await deckEmbeddingRepository.getDeckContentForEmbedding(deckId)
 
-  const { vector, model } = await generateEmbedding(combinedText)
+  if (!content) return null
 
-  await deckEmbeddingRepository.upsertEmbedding(deckId, vector, model)
+  console.log(`[Embeddings] Generating embedding for ${deckId}`)
+  const { vector, model } = await generateEmbedding(content)
+
+  await deckEmbeddingRepository.upsertEmbedding(deckId, vector, model, hash)
 
   return vector
 }
@@ -162,13 +170,26 @@ export async function findSimilarDecks(deckId: string, limit = 5) {
 
 /**
  * Generate embeddings for all public decks (batch job)
+ * Only updates embeddings for decks with changed content
  */
-export async function generateAllEmbeddings() {
+export async function generateAllEmbeddings(force = false) {
   const publicDecks = await deckEmbeddingRepository.findAllPublicDecks()
+  let processedCount = 0
+  let skippedCount = 0
+
+  console.log(`[Embeddings] Processing ${publicDecks.length} public decks`)
 
   for (const deck of publicDecks) {
-    await generateDeckEmbedding(deck.id)
+    const needsUpdate = force || await deckEmbeddingRepository.needsEmbeddingUpdate(deck.id)
+
+    if (needsUpdate) {
+      await generateDeckEmbedding(deck.id, true)
+      processedCount++
+    } else {
+      skippedCount++
+    }
   }
 
-  return publicDecks.length
+  console.log(`[Embeddings] Complete: ${processedCount} updated, ${skippedCount} skipped`)
+  return { total: publicDecks.length, processed: processedCount, skipped: skippedCount }
 }

@@ -31,9 +31,9 @@ export class DeckEmbeddingRepository extends BaseRepository {
     }
   }
 
-  async upsertEmbedding(deckId: string, vector: number[], model: string): Promise<void> {
+  async upsertEmbedding(deckId: string, vector: number[], model: string, contentHash: string): Promise<void> {
     try {
-      this.validateRequiredFields({ deckId, vector, model }, ['deckId', 'vector', 'model'])
+      this.validateRequiredFields({ deckId, vector, model, contentHash }, ['deckId', 'vector', 'model', 'contentHash'])
 
       const existing = await this.findByDeckId(deckId)
 
@@ -44,6 +44,7 @@ export class DeckEmbeddingRepository extends BaseRepository {
             vector,
             dim: vector.length,
             model,
+            contentHash,
             updatedAt: new Date(),
           })
           .where(eq(deckEmbeddings.id, existing.id))
@@ -55,6 +56,7 @@ export class DeckEmbeddingRepository extends BaseRepository {
             vector,
             dim: vector.length,
             model,
+            contentHash,
           })
       }
     } catch (error) {
@@ -107,38 +109,51 @@ export class DeckEmbeddingRepository extends BaseRepository {
     }
   }
 
-  async getDeckContentForEmbedding(deckId: string): Promise<string> {
+  async getDeckContentForEmbedding(deckId: string): Promise<{ content: string; hash: string }> {
     try {
       this.validateRequiredFields({ deckId }, ['deckId'])
-      
+
       // Get deck info
       const deck = await db
         .select()
         .from(decks)
         .where(eq(decks.id, deckId))
         .then(res => res[0] || null)
-      
-      if (!deck) return ''
-      
+
+      if (!deck) return { content: '', hash: '' }
+
       // Get sample cards (first 10)
       const sampleCards = await db
         .select()
         .from(cards)
         .where(eq(cards.deckId, deckId))
         .limit(10)
-        
-      
+
+
       // Combine text for embedding
       const combinedText = [
         deck.title,
         deck.description || '',
         ...sampleCards.map(c => `${c.front} ${c.back || ''}`)
       ].join(' ')
-      
-      return combinedText
+
+      // Generate hash of content
+      const hash = await this.generateContentHash(combinedText)
+
+      return { content: combinedText, hash }
     } catch (error) {
       this.handleError(error, 'getDeckContentForEmbedding')
     }
+  }
+
+  private async generateContentHash(content: string): Promise<string> {
+    // Use Web Crypto API to generate SHA-256 hash
+    const encoder = new TextEncoder()
+    const data = encoder.encode(content)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    return hashHex
   }
 
   async findAllPublicDecks(): Promise<{ id: string; title: string }[]> {
@@ -150,11 +165,27 @@ export class DeckEmbeddingRepository extends BaseRepository {
         })
         .from(decks)
         .where(eq(decks.isPublic, true))
-        
-      
+
+
       return publicDecks
     } catch (error) {
       this.handleError(error, 'findAllPublicDecks')
+    }
+  }
+
+  /**
+   * Check if embedding needs to be regenerated based on content hash
+   */
+  async needsEmbeddingUpdate(deckId: string): Promise<boolean> {
+    try {
+      const existing = await this.findByDeckId(deckId)
+      if (!existing) return true // No embedding exists
+
+      const { hash } = await this.getDeckContentForEmbedding(deckId)
+      return existing.contentHash !== hash // Content has changed
+    } catch (error) {
+      this.handleError(error, 'needsEmbeddingUpdate')
+      return true // On error, regenerate to be safe
     }
   }
 
