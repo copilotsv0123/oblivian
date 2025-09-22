@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Trophy, TrendingUp, Clock, Target, ArrowRight } from 'lucide-react'
 import { StudyAchievementOverlay } from './StudyAchievementOverlay'
 import { useStudyAchievements } from '@/hooks/useStudyAchievements'
+import { formatTime } from '@/lib/utils/time'
 import {
   deckRepo,
   sessionRepo,
@@ -28,11 +29,6 @@ const getGradeColor = (grade: string): string => {
   return 'text-gray-600'
 }
 
-const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-}
 
 export default function SessionCompletionScreen({
   deckId,

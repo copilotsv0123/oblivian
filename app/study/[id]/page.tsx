@@ -6,6 +6,7 @@ import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import StudyCompletionOverlay from '@/components/StudyCompletionOverlay'
 import { ApiError } from '@/lib/client/api-client'
+import { formatTime } from '@/lib/utils/time'
 import { deckRepo, reviewRepo, sessionRepo, studyRepo } from '@/lib/client/repositories'
 
 interface Card {
@@ -302,11 +303,6 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
     }
   }, [showAnswer, showAdvancedNotes, selectedConfidence, cards, currentIndex, handleReview, handleConfidenceSelect, router, resolvedParams.id])
 
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
 
   if (loading) {
     return (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { formatTime } from '@/lib/utils/time'
 import { Brain, Trophy, Target, Star, Zap, BookOpen, Award, Sparkles } from 'lucide-react'
 
 export type StudyAchievementType = 'session_complete' | 'perfect_score' | 'streak' | 'milestone'
@@ -93,6 +94,7 @@ const getGradeMessage = (grade: string, successRate: number) => {
   if (grade.startsWith('C')) return "Steady Learning!"
   return "Keep Practicing!"
 }
+
 
 export function StudyAchievementOverlay({
   isVisible,
@@ -269,7 +271,9 @@ export function StudyAchievementOverlay({
                   <p className="text-sm text-gray-300">Cards</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{Math.floor(sessionData.timeSpent / 60)}:{String(sessionData.timeSpent % 60).padStart(2, '0')}</p>
+                  <p className="text-2xl font-bold text-white">
+                    {formatTime(sessionData.timeSpent)}
+                  </p>
                   <p className="text-sm text-gray-300">Time</p>
                 </div>
                 <div className="text-center col-span-2 md:col-span-1">
