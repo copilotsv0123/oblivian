@@ -120,6 +120,7 @@ export const deckEmbeddings = pgTable('deck_embeddings', {
   vector: vector('vector', { dimensions: 1536 }).notNull(),
   dim: integer('dim').notNull(),
   model: text('model').notNull(),
+  contentHash: text('content_hash').notNull(), // SHA-256 hash of deck content for change detection
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
 

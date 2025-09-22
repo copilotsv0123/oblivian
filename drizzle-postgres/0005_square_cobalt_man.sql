@@ -1,0 +1,1 @@
+ALTER TABLE "deck_embeddings" ADD COLUMN "content_hash" text NOT NULL;
