@@ -10,7 +10,7 @@ interface EmbeddingComputation {
 }
 
 const TARGET_VECTOR_DIMENSION = 1536
-const DEFAULT_OPENAI_MODEL = 'text-embedding-3-large'
+const DEFAULT_OPENAI_MODEL = 'text-embedding-3-small'
 const OPENAI_ENDPOINT = 'https://api.openai.com/v1/embeddings'
 
 /**
