@@ -3,7 +3,7 @@
 * Frontend: Next.js + TypeScript + Tailwind.
 * Backend: Node.js. Stateless where possible.
 * Data: SQLite default (simple, portable). Adapter for Postgres later.
-* Embeddings: simple local cosine search over stored vectors. Adapter-based for future DBs.
+* Embeddings: OpenAI/Anthropic API integration with pgvector storage (local deterministic fallback available).
 * Auth: JWT with password or magic link.
 
 Use MCP context7 to ensure you work with the latest technologies and best practices.

@@ -120,7 +120,7 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
 
   useEffect(() => {
     fetchDeck()
-    // fetchSimilarDecks() // Disabled until OpenAI integration is complete
+    fetchSimilarDecks()
   }, [fetchDeck, fetchSimilarDecks])
 
 

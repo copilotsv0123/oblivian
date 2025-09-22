@@ -3,12 +3,17 @@
  * Validates required environment variables at startup
  */
 
+type EmbeddingProvider = 'openai' | 'anthropic' | 'local'
+
 interface EnvConfig {
   JWT_SECRET: string
   DATABASE_URL: string
   NODE_ENV: 'development' | 'production' | 'test'
   ANTHROPIC_API_KEY?: string
   OPENAI_API_KEY?: string
+  EMBEDDING_PROVIDER?: EmbeddingProvider
+  OPENAI_EMBEDDING_MODEL?: string
+  ANTHROPIC_EMBEDDING_MODEL?: string
 }
 
 class ConfigurationError extends Error {
@@ -31,6 +36,11 @@ export function getConfig(): EnvConfig {
   const DATABASE_URL = process.env.DATABASE_URL || 'file:./oblivian.db'
   const NODE_ENV = (process.env.NODE_ENV || 'development') as EnvConfig['NODE_ENV']
 
+  const rawProvider = process.env.EMBEDDING_PROVIDER?.toLowerCase()
+  const EMBEDDING_PROVIDER = rawProvider === 'openai' || rawProvider === 'anthropic' || rawProvider === 'local'
+    ? (rawProvider as EmbeddingProvider)
+    : undefined
+
   // Validate required variables
   const missing: string[] = []
   
@@ -51,6 +61,9 @@ export function getConfig(): EnvConfig {
         NODE_ENV,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
         OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+        EMBEDDING_PROVIDER,
+        OPENAI_EMBEDDING_MODEL: process.env.OPENAI_EMBEDDING_MODEL,
+        ANTHROPIC_EMBEDDING_MODEL: process.env.ANTHROPIC_EMBEDDING_MODEL,
       }
       return config
     }
@@ -64,6 +77,9 @@ export function getConfig(): EnvConfig {
     NODE_ENV,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    EMBEDDING_PROVIDER,
+    OPENAI_EMBEDDING_MODEL: process.env.OPENAI_EMBEDDING_MODEL,
+    ANTHROPIC_EMBEDDING_MODEL: process.env.ANTHROPIC_EMBEDDING_MODEL,
   }
 
   return config

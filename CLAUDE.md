@@ -115,7 +115,7 @@ Uses PostgreSQL with Drizzle ORM. Schema defined in `lib/db/schema-postgres.ts`:
 
 ### 4. Vector Search & Recommendations
 - **Database**: pgvector extension for vector storage
-- **Embeddings**: 1536-dimension vectors (OpenAI compatible)
+- **Embeddings**: 1536-dimension vectors computed via OpenAI/Anthropic APIs with local fallback
 - **Service**: `lib/embeddings/service.ts`
 - **Use Case**: Similar deck recommendations
 - **Implementation**: Cosine similarity search

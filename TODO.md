@@ -6,7 +6,7 @@
   - Replace direct `fetch('/api/study/${id}/session', {...})` calls with `sessionRepo.update()`
   - Centralize API calls, error handling, and data transformation
   - Enable better testing, caching, and offline capabilities
-- [ ] **OpenAI Integration** - Integrate OpenAI API for computing embeddings (replace or complement current pgvector implementation)
+- [x] **OpenAI Integration** - Integrate OpenAI API for computing embeddings (replace or complement current pgvector implementation)
 - [ ] **Mobile Swipe Gestures** - Add swipe interactions for card reviews:
   - Swipe left → Don't know
   - Swipe down → Maybe/Hard

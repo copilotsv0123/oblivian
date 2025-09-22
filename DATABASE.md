@@ -135,6 +135,7 @@ mcp__neon__describe_table_schema({
 ### Vector Search
 - Uses pgvector extension for deck similarity recommendations
 - 1536-dimension embeddings stored in `deck_embeddings` table
+- Embeddings generated via OpenAI/Anthropic APIs with deterministic local fallback
 - Cosine similarity search for related deck suggestions
 
 ## Data Integrity
