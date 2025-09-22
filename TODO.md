@@ -1,11 +1,6 @@
 # Oblivian - Feature TODO List
 
 ## Core Technical Improvements
-- [ ] **Repository Pattern for Frontend** - Replace isolated fetch calls with proper repository structure:
-  - Create client-side repositories (SessionRepository, ReviewRepository, etc.)
-  - Replace direct `fetch('/api/study/${id}/session', {...})` calls with `sessionRepo.update()`
-  - Centralize API calls, error handling, and data transformation
-  - Enable better testing, caching, and offline capabilities
 - [ ] **OpenAI Integration** - Integrate OpenAI API for computing embeddings (replace or complement current pgvector implementation)
 - [ ] **Mobile Swipe Gestures** - Add swipe interactions for card reviews:
   - Swipe left → Don't know
