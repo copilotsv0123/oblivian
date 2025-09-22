@@ -1,99 +1,44 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { Suspense, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
+import { AuthButton } from '@/components/auth/AuthButton'
+import { useAuth } from '@/components/auth/AuthProvider'
 
-function LoginForm() {
-  const router = useRouter()
+function LoginContent() {
   const searchParams = useSearchParams()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [returnUrl, setReturnUrl] = useState('/dashboard')
+  const router = useRouter()
+  const { user, loading } = useAuth()
 
-  useEffect(() => {
+  const returnUrl = useMemo(() => {
     const url = searchParams.get('returnUrl')
-    if (url) {
-      setReturnUrl(decodeURIComponent(url))
+    if (!url || !url.startsWith('/')) {
+      return '/dashboard'
     }
+    return url
   }, [searchParams])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+  const errorMessage = searchParams.get('error')
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to login')
-      }
-
-      router.push(returnUrl)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace(returnUrl)
     }
-  }
+  }, [loading, user, router, returnUrl])
 
   return (
     <div className="min-h-screen flex items-center justify-center p-8">
-      <div className="card max-w-md w-full">
-        <h1 className="text-3xl font-serif text-primary mb-2">Welcome Back</h1>
-        <p className="text-gray-600 mb-8">Login to continue learning</p>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="label">Email or Username</label>
-            <input
-              id="email"
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input"
-              required
-              disabled={loading}
-            />
+      <div className="card max-w-md w-full space-y-6">
+        <div>
+          <h1 className="text-3xl font-serif text-primary mb-2">Welcome Back</h1>
+          <p className="text-gray-600">Use your Google account to continue.</p>
+        </div>
+        {errorMessage && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+            {decodeURIComponent(errorMessage)}
           </div>
-          
-          <div>
-            <label htmlFor="password" className="label">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="btn-primary w-full"
-            disabled={loading}
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-
+        )}
+        <AuthButton loginLabel="Continue with Google" logoutLabel="Sign out" />
       </div>
     </div>
   )
@@ -108,7 +53,7 @@ export default function LoginPage() {
         </div>
       </div>
     }>
-      <LoginForm />
+      <LoginContent />
     </Suspense>
   )
 }

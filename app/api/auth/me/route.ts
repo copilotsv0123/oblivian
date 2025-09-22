@@ -9,7 +9,8 @@ export const GET = withApiHandler(async ({ user }: ApiContextOptionalAuth) => {
     user: {
       id: user.id,
       email: user.email,
-      name: user.name,
+      name: user.name ?? user.email,
+      avatarUrl: user.avatarUrl,
     }
   }
 }, { requireAuth: false })

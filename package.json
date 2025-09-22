@@ -8,10 +8,6 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "node -e \"try{require('@tailwindcss/oxide')}catch(e){console.log('Installing native deps...')}\"",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
     "mcp:test": "cd mcp-server && node test-mcp.cjs"
   },
   "keywords": [],

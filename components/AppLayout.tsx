@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Home, Trophy, Sparkles, Settings, LogOut, Menu, X } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
+import { useAuth } from '@/components/auth/AuthProvider'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -13,44 +14,37 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, loading, logout } = useAuth()
   const [achievementCount, setAchievementCount] = useState<{ earned: number; total: number } | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
-    // Check authentication
-    fetch('/api/auth/me')
-      .then(res => {
-        if (!res.ok) {
-          // Store the current path to redirect back after login
-          const returnUrl = encodeURIComponent(pathname)
-          router.push(`/login?returnUrl=${returnUrl}`)
-          return null
-        }
-        return res.json()
-      })
-      .then(data => {
-        if (data) {
-          setUser(data.user)
-          // Fetch achievement counts
-          fetch('/api/achievements')
-            .then(res => res.json())
-            .then(achievementData => {
-              if (achievementData.achievements) {
-                const earned = achievementData.achievements.filter((a: any) => a.unlockedAt).length
-                const total = achievementData.achievements.length
-                setAchievementCount({ earned, total })
-              }
-            })
-            .catch(console.error)
+    if (!loading && !user) {
+      const returnUrl = encodeURIComponent(pathname || '/dashboard')
+      router.replace(`/login?returnUrl=${returnUrl}`)
+    }
+  }, [loading, user, router, pathname])
+
+  useEffect(() => {
+    if (!user) {
+      setAchievementCount(null)
+      return
+    }
+
+    fetch('/api/achievements')
+      .then(res => res.json())
+      .then(achievementData => {
+        if (achievementData.achievements) {
+          const earned = achievementData.achievements.filter((a: any) => a.unlockedAt).length
+          const total = achievementData.achievements.length
+          setAchievementCount({ earned, total })
         }
       })
-      .finally(() => setLoading(false))
-  }, [router, pathname])
+      .catch(console.error)
+  }, [user])
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
+    await logout()
     router.push('/login')
   }
 

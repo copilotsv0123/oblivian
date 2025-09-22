@@ -10,7 +10,7 @@ export type {
 
 // User Repository
 export { UserRepository, userRepository } from './user-repository'
-export type { CreateUserInput, UpdateUserInput } from './user-repository'
+export type { CreateUserInput, UpdateUserInput, GoogleUserInput } from './user-repository'
 
 // API Token Repository
 export { ApiTokenRepository, apiTokenRepository } from './api-token-repository'

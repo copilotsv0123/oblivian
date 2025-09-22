@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/react'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import FloatingThemeToggle from '@/components/FloatingThemeToggle'
 import './globals.css'
+import { AuthProvider } from '@/components/auth/AuthProvider'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -51,7 +52,9 @@ export default function RootLayout({
         </Script>
         <ThemeProvider>
           <FloatingThemeToggle />
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </ThemeProvider>
         <Analytics />
       </body>

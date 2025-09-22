@@ -4,8 +4,25 @@ import { sql } from 'drizzle-orm'
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   email: text('email').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
+  passwordHash: text('password_hash'),
+  googleId: text('google_id').unique(),
+  name: text('name'),
+  avatarUrl: text('avatar_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const authSessions = pgTable('auth_sessions', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  sessionTokenHash: text('session_token_hash').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  googleAccessTokenEnc: text('google_access_token_enc'),
+  googleRefreshTokenEnc: text('google_refresh_token_enc'),
+  googleIdTokenEnc: text('google_id_token_enc'),
+  googleTokenExpiresAt: timestamp('google_token_expires_at', { withTimezone: true }),
 })
 
 export const apiTokens = pgTable('api_tokens', {
@@ -121,6 +138,8 @@ export const deckRankings = pgTable('deck_rankings', {
 // Type exports for PostgreSQL
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
+export type AuthSession = typeof authSessions.$inferSelect
+export type NewAuthSession = typeof authSessions.$inferInsert
 export type ApiToken = typeof apiTokens.$inferSelect
 export type NewApiToken = typeof apiTokens.$inferInsert
 export type Deck = typeof decks.$inferSelect

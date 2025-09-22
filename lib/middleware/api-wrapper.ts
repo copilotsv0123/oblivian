@@ -5,7 +5,8 @@ export interface ApiContext {
   user: {
     id: string
     email: string
-    name: string
+    name: string | null
+    avatarUrl: string | null
   }
   request: NextRequest
 }
@@ -14,7 +15,8 @@ export interface ApiContextOptionalAuth {
   user?: {
     id: string
     email: string
-    name: string
+    name: string | null
+    avatarUrl: string | null
   }
   request: NextRequest
 }

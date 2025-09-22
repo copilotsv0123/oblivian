@@ -1,7 +1,8 @@
 {
   "permissions": {
     "additionalDirectories": [
-      "/Users/sderosiaux/Desktop/ai-projects/kradar/"
+      "/Users/sderosiaux/Desktop/ai-projects/kradar/",
+      "/Users/sderosiaux/Desktop/ai-projects/blaze-gallery/"
     ]
   }
 }
