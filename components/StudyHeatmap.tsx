@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import { useState, useEffect } from "react";
 import Tooltip from "./Tooltip";
 
@@ -31,13 +32,17 @@ export default function StudyHeatmap() {
     fetchData();
   }, []);
 
+  const intensityLevels = [
+    "bg-muted/70 dark:bg-white/10",
+    "bg-emerald-200/70 dark:bg-emerald-400/25",
+    "bg-emerald-300/80 dark:bg-emerald-400/45",
+    "bg-emerald-400/90 dark:bg-emerald-500/60",
+    "bg-emerald-500 dark:bg-emerald-500",
+  ];
+
   const getIntensity = (count: number) => {
-    if (count === 0) return "bg-gray-100";
-    if (count === 1) return "bg-green-200";
-    if (count === 2) return "bg-green-300";
-    if (count === 3) return "bg-green-400";
-    if (count >= 4) return "bg-green-500";
-    return "bg-gray-100";
+    const index = Math.min(Math.max(Math.floor(count), 0), intensityLevels.length - 1);
+    return intensityLevels[index];
   };
 
   // Generate grid for the last 52 weeks
@@ -169,7 +174,7 @@ export default function StudyHeatmap() {
           Study Activity
         </h2>
         <div className="animate-pulse">
-          <div className="h-32 bg-gray-200 rounded"></div>
+          <div className="h-32 rounded bg-muted/60"></div>
         </div>
       </div>
     );
@@ -177,7 +182,6 @@ export default function StudyHeatmap() {
 
   const weeks = generateGrid();
   const months = monthLabels();
-  const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   // Calculate total activity
   const totalSessions = Object.values(data).reduce(
@@ -198,11 +202,11 @@ export default function StudyHeatmap() {
       <div className="overflow-x-auto">
         <div className="inline-block relative">
           {/* Month labels */}
-          <div className="relative h-5 mb-1" style={{ marginLeft: '35px' }}>
+          <div className="relative mb-1 h-5" style={{ marginLeft: '35px' }}>
             {months.map((label, i) => (
               <div
                 key={i}
-                className="text-xs text-gray-500 absolute"
+                className="absolute text-xs text-muted-foreground/80"
                 style={{
                   left: `${label.weekIndex * 14}px`,
                 }}
@@ -212,11 +216,10 @@ export default function StudyHeatmap() {
             ))}
           </div>
 
-          <div className="flex gap-[3px] relative">
+          <div className="relative flex gap-[3px]">
             {/* Day labels */}
             <div
-              className="flex flex-col gap-[3px] mr-1 text-xs"
-              style={{ fontSize: "11px", color: "#57606a" }}
+              className="mr-1 flex flex-col gap-[3px] text-[11px] text-muted-foreground/80"
             >
               <div className="h-[11px]"></div>
               <div className="h-[11px] flex items-center pr-1">Mon</div>
@@ -251,11 +254,13 @@ export default function StudyHeatmap() {
                   return (
                     <Tooltip key={dayIndex} content={tooltipContent}>
                       <div
-                        className={`w-[11px] h-[11px] rounded-[2px] ${
+                        className={clsx(
+                          "h-[11px] w-[11px] cursor-pointer rounded-[2px] border border-border/40 transition-colors duration-300",
                           day.isToday
                             ? `${getIntensity(day.count)} ring-1 ring-primary`
-                            : getIntensity(day.count)
-                        } hover:ring-1 hover:ring-gray-400 cursor-pointer`}
+                            : getIntensity(day.count),
+                          "hover:ring-1 hover:ring-primary/40",
+                        )}
                       />
                     </Tooltip>
                   );
@@ -265,22 +270,25 @@ export default function StudyHeatmap() {
           </div>
 
           {/* Legend and totals */}
-          <div className="flex justify-between items-center mt-4">
-            <div className="text-xs text-gray-600">
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-xs text-muted-foreground">
               <strong>{totalSessions.toLocaleString()}</strong> sessions in the
               last year
-              <span className="text-gray-400 ml-2">·</span>
+              <span className="ml-2 text-muted-foreground/60">·</span>
               <span className="ml-2">
                 {totalCards.toLocaleString()} cards reviewed
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-gray-500">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground/80">
               <span>Less</span>
               <div className="flex gap-[2px]">
                 {[0, 1, 2, 3, 4].map((level) => (
                   <div
                     key={level}
-                    className={`w-[11px] h-[11px] rounded-[2px] ${getIntensity(level)}`}
+                    className={clsx(
+                      "h-[11px] w-[11px] rounded-[2px] border border-border/40",
+                      getIntensity(level),
+                    )}
                   />
                 ))}
               </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import { ReactNode, useState, useRef, useEffect } from "react";
 
 interface TooltipProps {
@@ -67,20 +68,23 @@ export default function Tooltip({
       </div>
       {isVisible && (
         <div
-          className={`fixed z-50 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 pointer-events-none shadow-lg ${className}`}
+          className={clsx(
+            'pointer-events-none fixed z-50 rounded-lg border border-border/60 bg-popover px-3 py-2 text-xs text-popover-foreground shadow-lg transition-colors',
+            className,
+          )}
           style={{
             left: position.x,
             top: position.y,
-            transform: "translate(-50%, -100%)",
+            transform: 'translate(-50%, -100%)',
           }}
         >
           {content}
           <div
-            className="absolute w-2 h-2 bg-gray-900 rotate-45"
+            className="absolute h-3 w-3 rotate-45 border border-border/60 bg-popover"
             style={{
-              bottom: "-4px",
-              left: "50%",
-              transform: "translateX(-50%)",
+              bottom: '-6px',
+              left: '50%',
+              transform: 'translateX(-50%)',
             }}
           />
         </div>

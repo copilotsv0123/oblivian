@@ -142,11 +142,13 @@ export function StudyAchievementOverlay({
     <>
       {/* Keyframe animations */}
       <style jsx global>{`
-
-
-
-
-
+        .achievement-overlay {
+          background: radial-gradient(
+            circle at center,
+            hsl(var(--scrim, 222 47% 12%) / 0.82) 0%,
+            hsl(var(--scrim, 222 47% 12%) / 0.94) 100%
+          );
+        }
 
         @keyframes particle-float {
           0% {
@@ -161,10 +163,12 @@ export function StudyAchievementOverlay({
 
         @keyframes achievement-glow {
           0%, 100% {
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 20px hsl(var(--overlay-foreground, 210 40% 98%) / 0.3);
           }
           50% {
-            box-shadow: 0 0 40px rgba(255, 255, 255, 0.6), 0 0 80px rgba(255, 255, 255, 0.3);
+            box-shadow:
+              0 0 40px hsl(var(--overlay-foreground, 210 40% 98%) / 0.6),
+              0 0 80px hsl(var(--overlay-foreground, 210 40% 98%) / 0.3);
           }
         }
 
@@ -194,10 +198,7 @@ export function StudyAchievementOverlay({
 
       {/* Full-screen overlay */}
       <div
-        className="fixed inset-0 z-[9999] flex items-center justify-center cursor-pointer"
-        style={{
-          background: `radial-gradient(circle at center, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.9) 100%)`
-        }}
+        className="achievement-overlay fixed inset-0 z-[9999] flex items-center justify-center cursor-pointer"
         onClick={onComplete}
         title="Click to dismiss"
       >
