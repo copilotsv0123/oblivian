@@ -15,7 +15,11 @@ export const POST = withApiHandler(async ({ request }: ApiContextOptionalAuth) =
 
   // Always verify password to prevent timing attacks
   const dummyHash = '$2a$10$abcdefghijklmnopqrstuvwxyz123456789012345678901234567890'
-  const passwordToCheck = user ? user.passwordHash : dummyHash
+  if (!user?.passwordHash) {
+    throw new Error('unauthorized: Invalid credentials')
+  }
+
+  const passwordToCheck = user.passwordHash || dummyHash
   const isValidPassword = await verifyPassword(password, passwordToCheck)
 
   if (!user || !isValidPassword) {
