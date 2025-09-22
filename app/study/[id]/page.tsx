@@ -392,7 +392,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
         <div className="card max-w-2xl w-full">
           <div className="mb-6">
             
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+            <div className="w-full bg-muted rounded-full h-2 mb-6">
               <div
                 className="bg-primary h-2 rounded-full transition-all"
                 style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}
