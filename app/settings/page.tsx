@@ -64,7 +64,7 @@ export default function SettingsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="card mb-8">
           <h2 className="text-2xl font-bold text-primary mb-4">API Tokens</h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-muted-foreground mb-6">
             Create API tokens to use with Claude Desktop&apos;s MCP integration. 
             These tokens allow Claude to manage your decks and cards.
           </p>
@@ -79,11 +79,11 @@ export default function SettingsPage() {
           </div>
 
           {newTokenValue && (
-            <div className="bg-green-50 border border-green-200 p-4 rounded-lg mb-6">
-              <p className="text-sm font-semibold text-green-800 mb-2">
+            <div className="bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 p-4 rounded-lg mb-6">
+              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200 mb-2">
                 New token created! Copy it now - you won&apos;t see it again:
               </p>
-              <div className="bg-white p-3 rounded border border-green-300 font-mono text-sm break-all">
+              <div className="bg-card p-3 rounded border border-emerald-300 dark:border-emerald-700 font-mono text-sm break-all">
                 {newTokenValue}
               </div>
               <button
@@ -99,20 +99,20 @@ export default function SettingsPage() {
           )}
 
           {loading ? (
-            <p className="text-gray-600">Loading tokens...</p>
+            <p className="text-muted-foreground">Loading tokens...</p>
           ) : tokens.length === 0 ? (
-            <p className="text-gray-600">No API tokens yet. Create one to get started with MCP.</p>
+            <p className="text-muted-foreground">No API tokens yet. Create one to get started with MCP.</p>
           ) : (
             <div className="space-y-3">
               {tokens.map((token) => (
-                <div key={token.id} className="border rounded-lg p-4 bg-white">
+                <div key={token.id} className="border rounded-lg p-4 bg-card">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-semibold text-primary">{token.name}</h3>
-                      <p className="text-sm text-gray-600 font-mono mt-1">
+                      <p className="text-sm text-muted-foreground font-mono mt-1">
                         Token: {token.tokenPreview}
                       </p>
-                      <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                      <div className="flex gap-4 mt-2 text-xs text-muted-foreground/80">
                         <span>Created: {formatDate(token.createdAt)}</span>
                         <span>Last used: {formatDate(token.lastUsedAt)}</span>
                         {token.expiresAt && (
@@ -122,7 +122,7 @@ export default function SettingsPage() {
                     </div>
                     <button
                       onClick={() => handleDeleteToken(token.id)}
-                      className="text-red-600 hover:text-red-800 text-sm"
+                      className="text-destructive hover:text-destructive/80 text-sm"
                     >
                       Delete
                     </button>
@@ -135,16 +135,16 @@ export default function SettingsPage() {
 
         <div className="card">
           <h2 className="text-2xl font-bold text-primary mb-4">Claude Desktop Integration</h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-muted-foreground mb-4">
             Integrate with Claude Desktop using the Model Context Protocol (MCP) to generate AI-powered flashcards.
           </p>
-          <ol className="list-decimal list-inside space-y-2 text-gray-700">
+          <ol className="list-decimal list-inside space-y-2 text-foreground">
             <li>Create an API token above</li>
             <li>Add this configuration to your Claude Desktop config file at: <br/>
-                <code className="bg-gray-100 px-2 py-1 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code></li>
+                <code className="bg-muted px-2 py-1 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code></li>
           </ol>
           
-          <div className="bg-gray-50 p-4 rounded-lg mt-4 mb-4">
+          <div className="bg-muted/50 p-4 rounded-lg mt-4 mb-4">
             <pre className="text-sm overflow-x-auto">
 {`{
   "mcpServers": {
@@ -166,8 +166,8 @@ export default function SettingsPage() {
             </pre>
           </div>
 
-          <ol className="list-decimal list-inside space-y-2 text-gray-700" start={3}>
-            <li>Replace <code className="bg-gray-100 px-2 py-1 rounded">YOUR_API_TOKEN</code> with the token from above</li>
+          <ol className="list-decimal list-inside space-y-2 text-foreground" start={3}>
+            <li>Replace <code className="bg-muted px-2 py-1 rounded">YOUR_API_TOKEN</code> with the token from above</li>
             <li>Restart Claude Desktop</li>
             <li>Start generating cards with natural language prompts like:
               <ul className="list-disc list-inside ml-6 mt-2 space-y-1 text-sm">
@@ -178,8 +178,8 @@ export default function SettingsPage() {
             </li>
           </ol>
 
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mt-6">
-            <p className="text-sm text-blue-800">
+          <div className="bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 p-4 rounded-lg mt-6">
+            <p className="text-sm text-foreground">
               <strong>💡 Pro tip:</strong> Once configured, Claude can automatically create multiple flashcards at once with different types (basic, cloze, multiple choice, explanation) based on your material.
             </p>
           </div>
@@ -275,7 +275,7 @@ function CreateTokenModal({
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+            <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">
               {error}
             </div>
           )}

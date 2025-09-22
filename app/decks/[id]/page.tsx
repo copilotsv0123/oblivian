@@ -406,13 +406,13 @@ export default function DeckPage({ params }: { params: Promise<{ id: string }> }
                 {Array.from({ length: 27 }, (_, i) => i).map((i) => (
                   <div key={i} className="card opacity-60">
                     <div className="space-y-2">
-                      <div className="h-4 bg-gray-200 rounded"></div>
-                      <div className="h-3 bg-gray-100 rounded w-3/4"></div>
+                      <div className="h-4 bg-muted rounded"></div>
+                      <div className="h-3 bg-muted/60 rounded w-3/4"></div>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/40 to-transparent pointer-events-none"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/40 to-transparent pointer-events-none"></div>
               <div className="absolute inset-0 flex items-center justify-center">
                 <button
                   onClick={() => setShowCards(true)}

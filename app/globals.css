@@ -157,11 +157,11 @@
   }
 
   .btn-glass {
-    @apply inline-flex items-center justify-center rounded-lg font-medium transition-colors border-2 border-primary/60 bg-card/80 text-primary backdrop-blur-sm hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 shadow-lg;
+    @apply inline-flex items-center justify-center rounded-lg font-medium transition-colors border-2 border-primary/60 bg-background/95 text-primary backdrop-blur-sm hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 shadow-lg;
   }
 
   .dark .btn-glass {
-    @apply border-primary/60 bg-card/20 text-primary-foreground hover:bg-primary/30;
+    @apply border-primary/60 bg-background/95 text-primary hover:bg-primary hover:text-primary-foreground;
   }
 
   /* Card Component */

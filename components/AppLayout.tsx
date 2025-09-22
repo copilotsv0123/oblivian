@@ -88,8 +88,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const isActive = (path: string) => pathname === path
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-background text-foreground transition-colors">
-      <nav className="border-b border-border/60 bg-card/80 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/60 transition-colors">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-muted/30 text-foreground transition-colors">
+      <nav className="border-b border-border/60 bg-card shadow-sm transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo and Desktop Menu */}
@@ -195,7 +195,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
-          <div className="xl:hidden border-t border-border/60 bg-card/90 backdrop-blur supports-[backdrop-filter]:bg-card/70">
+          <div className="xl:hidden border-t border-border/60 bg-card">
             <div className="px-4 py-3 space-y-1">
               <Link
                 href="/dashboard"

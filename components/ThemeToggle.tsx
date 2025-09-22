@@ -54,7 +54,7 @@ export default function ThemeToggle({ className }: { className?: string }) {
       <button
         type="button"
         onClick={() => setOpen(prev => !prev)}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card/80 backdrop-blur transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`Toggle theme (currently ${resolvedLabel})`}
@@ -65,13 +65,10 @@ export default function ThemeToggle({ className }: { className?: string }) {
 
       {open && isMounted && (
         <div
-          className="absolute right-0 z-50 mt-2 w-44 rounded-xl border border-border/80 bg-card p-2 text-sm shadow-lg"
+          className="absolute right-0 z-50 mt-2 w-44 rounded-xl border border-border bg-white dark:bg-slate-900 p-2 text-sm shadow-xl"
           role="menu"
           aria-label="Theme options"
         >
-          <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Appearance
-          </p>
           <div className="space-y-1">
             {OPTIONS.map(option => {
               const Icon = option.icon
@@ -100,10 +97,6 @@ export default function ThemeToggle({ className }: { className?: string }) {
               )
             })}
           </div>
-          <p className="pt-2 text-[11px] leading-tight text-muted-foreground/80">
-            Current:&nbsp;
-            <span className="font-medium text-foreground">{resolvedLabel}</span>
-          </p>
         </div>
       )}
     </div>

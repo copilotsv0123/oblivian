@@ -64,10 +64,10 @@ export default function AchievementsPage() {
       <AppLayout>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
+            <div className="h-8 bg-muted rounded w-1/4 mb-8"></div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
+                <div key={i} className="h-32 bg-muted rounded"></div>
               ))}
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function AchievementsPage() {
             <div className="card bg-gradient-to-br from-primary/10 to-primary/5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Points</p>
+                  <p className="text-sm text-muted-foreground">Total Points</p>
                   <p className="text-2xl font-bold text-primary">{totalPoints}</p>
                 </div>
                 <Trophy className="w-8 h-8 text-primary/50" />
@@ -98,31 +98,31 @@ export default function AchievementsPage() {
             <div className="card bg-gradient-to-br from-green-500/10 to-green-500/5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Unlocked</p>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-sm text-muted-foreground">Unlocked</p>
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                     {unlockedCount}/{achievements.length}
                   </p>
                 </div>
-                <Star className="w-8 h-8 text-green-500/50" />
+                <Star className="w-8 h-8 text-emerald-500/50" />
               </div>
             </div>
 
-            <div className="card bg-gradient-to-br from-blue-500/10 to-blue-500/5">
+            <div className="card bg-gradient-to-br from-primary/10 to-primary/5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Completion</p>
-                  <p className="text-2xl font-bold text-blue-600">{completionRate}%</p>
+                  <p className="text-sm text-muted-foreground">Completion</p>
+                  <p className="text-2xl font-bold text-primary">{completionRate}%</p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-blue-500/50" />
+                <TrendingUp className="w-8 h-8 text-primary/50" />
               </div>
             </div>
 
             {stats && (
-              <div className="card bg-gradient-to-br from-orange-500/10 to-orange-500/5">
+              <div className="card bg-gradient-to-br from-amber-500/10 to-amber-500/5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Current Streak</p>
-                    <p className="text-2xl font-bold text-orange-600">
+                    <p className="text-sm text-muted-foreground">Current Streak</p>
+                    <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                       {stats.currentStreak} days
                     </p>
                   </div>
@@ -140,14 +140,14 @@ export default function AchievementsPage() {
               key={achievement.id}
               className={`card relative ${
                 achievement.unlocked
-                  ? 'bg-white border-green-200'
-                  : 'bg-gray-50 border-gray-200'
+                  ? 'bg-card border-emerald-200 dark:border-emerald-800'
+                  : 'bg-muted/50 border-border'
               }`}
             >
               {/* Unlocked Badge */}
               {achievement.unlocked && (
                 <div className="absolute top-2 right-2">
-                  <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                  <div className="bg-emerald-500 text-white text-xs px-2 py-1 rounded-full">
                     ✓ Unlocked
                   </div>
                 </div>
@@ -167,14 +167,14 @@ export default function AchievementsPage() {
                 <div className="flex-1">
                   <h3
                     className={`font-semibold mb-1 ${
-                      achievement.unlocked ? 'text-gray-900' : 'text-gray-500'
+                      achievement.unlocked ? 'text-foreground' : 'text-muted-foreground'
                     }`}
                   >
                     {achievement.name}
                   </h3>
                   <p
                     className={`text-sm mb-2 ${
-                      achievement.unlocked ? 'text-gray-600' : 'text-gray-400'
+                      achievement.unlocked ? 'text-muted-foreground' : 'text-muted-foreground/60'
                     }`}
                   >
                     {achievement.description}
@@ -183,13 +183,13 @@ export default function AchievementsPage() {
                   {/* Progress Bar */}
                   {!achievement.unlocked && (
                     <div className="mt-3">
-                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
                         <span>
                           {achievement.current}/{achievement.target}
                         </span>
                         <span>{Math.round(achievement.progress)}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-muted rounded-full h-2">
                         <div
                           className="bg-primary h-2 rounded-full transition-all"
                           style={{ width: `${achievement.progress}%` }}
@@ -202,13 +202,13 @@ export default function AchievementsPage() {
                   <div className="flex items-center gap-2 mt-3">
                     <span
                       className={`text-sm font-medium ${
-                        achievement.unlocked ? 'text-green-600' : 'text-gray-400'
+                        achievement.unlocked ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground/60'
                       }`}
                     >
                       {achievement.points} points
                     </span>
                     {achievement.unlocked && achievement.unlockedAt && (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-muted-foreground/60">
                         · {new Date(achievement.unlockedAt).toLocaleDateString()}
                       </span>
                     )}
@@ -220,7 +220,7 @@ export default function AchievementsPage() {
         </div>
 
         {achievements.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-muted-foreground">
             No achievements yet.
           </div>
         )}
