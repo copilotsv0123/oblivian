@@ -1,7 +1,7 @@
 import { getConfig } from '@/lib/config/env'
 import { deckEmbeddingRepository } from '@/lib/repositories/deck-embedding-repository'
 
-type EmbeddingProvider = 'openai' | 'anthropic' | 'local'
+type EmbeddingProvider = 'openai'
 
 interface EmbeddingComputation {
   vector: number[]
@@ -10,79 +10,30 @@ interface EmbeddingComputation {
 }
 
 const TARGET_VECTOR_DIMENSION = 1536
-const DEFAULT_OPENAI_MODEL = 'text-embedding-3-small'
-const ANTHROPIC_API_VERSION = process.env.ANTHROPIC_API_VERSION || '2023-06-01'
+const DEFAULT_OPENAI_MODEL = 'text-embedding-3-large'
 const OPENAI_ENDPOINT = 'https://api.openai.com/v1/embeddings'
-const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/embeddings'
 
 /**
- * Generate an embedding vector for the given text using the configured provider.
- * Falls back to a deterministic local embedding when external APIs are unavailable.
+ * Generate an embedding vector for the given text using OpenAI's embedding API.
+ * Requires a valid OpenAI API key.
  */
 export async function generateEmbedding(text: string): Promise<EmbeddingComputation> {
   const normalizedText = text.trim()
   const config = getConfig()
-  const provider = chooseProvider(config)
 
   if (normalizedText.length === 0) {
-    return {
-      vector: new Array(TARGET_VECTOR_DIMENSION).fill(0),
-      model: 'local:empty',
-      provider: 'local',
-    }
+    throw new Error('Cannot generate embedding for empty text')
   }
 
-  if (provider === 'openai' && config.OPENAI_API_KEY) {
-    const model = config.OPENAI_EMBEDDING_MODEL || DEFAULT_OPENAI_MODEL
-
-    try {
-      const vector = await createOpenAIEmbedding(normalizedText, model, config.OPENAI_API_KEY)
-      return { vector, model: `openai:${model}`, provider }
-    } catch (error) {
-      logProviderError('openai', error)
-    }
+  if (!config.OPENAI_API_KEY) {
+    throw new Error('OpenAI API key is required for embedding generation')
   }
 
-  if (provider === 'anthropic' && config.ANTHROPIC_API_KEY) {
-    const model = config.ANTHROPIC_EMBEDDING_MODEL
-
-    if (!model) {
-      console.warn('[Embeddings] ANTHROPIC_EMBEDDING_MODEL is not set. Falling back to local embeddings.')
-    } else {
-      try {
-        const vector = await createAnthropicEmbedding(normalizedText, model, config.ANTHROPIC_API_KEY)
-        return { vector, model: `anthropic:${model}`, provider }
-      } catch (error) {
-        logProviderError('anthropic', error)
-      }
-    }
-  }
-
-  const vector = createLocalEmbeddingVector(normalizedText)
-  return { vector, model: 'local:simple-tfidf', provider: 'local' }
+  const model = config.OPENAI_EMBEDDING_MODEL || DEFAULT_OPENAI_MODEL
+  const vector = await createOpenAIEmbedding(normalizedText, model, config.OPENAI_API_KEY)
+  return { vector, model: `openai:${model}`, provider: 'openai' }
 }
 
-function chooseProvider(config: ReturnType<typeof getConfig>): EmbeddingProvider {
-  const hasOpenAI = Boolean(config.OPENAI_API_KEY)
-  const hasAnthropic = Boolean(config.ANTHROPIC_API_KEY)
-  const preferred = config.EMBEDDING_PROVIDER
-
-  if (preferred === 'openai') {
-    return hasOpenAI ? 'openai' : 'local'
-  }
-
-  if (preferred === 'anthropic') {
-    return hasAnthropic ? 'anthropic' : 'local'
-  }
-
-  if (preferred === 'local') {
-    return 'local'
-  }
-
-  if (hasOpenAI) return 'openai'
-  if (hasAnthropic) return 'anthropic'
-  return 'local'
-}
 
 async function createOpenAIEmbedding(text: string, model: string, apiKey: string): Promise<number[]> {
   const response = await fetch(OPENAI_ENDPOINT, {
@@ -112,34 +63,6 @@ async function createOpenAIEmbedding(text: string, model: string, apiKey: string
   return ensureVectorSize(sanitizeEmbedding(embedding))
 }
 
-async function createAnthropicEmbedding(text: string, model: string, apiKey: string): Promise<number[]> {
-  const response = await fetch(ANTHROPIC_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': ANTHROPIC_API_VERSION,
-    },
-    body: JSON.stringify({
-      input: text,
-      model,
-    }),
-  })
-
-  if (!response.ok) {
-    const errorBody = await safeReadError(response)
-    throw new Error(`Anthropic embeddings request failed: ${errorBody}`)
-  }
-
-  const data = await response.json() as { embedding?: unknown; data?: Array<{ embedding: unknown }> }
-  const embedding = data.embedding ?? data.data?.[0]?.embedding
-
-  if (!embedding) {
-    throw new Error('Anthropic embeddings response missing embedding vector')
-  }
-
-  return ensureVectorSize(sanitizeEmbedding(embedding))
-}
 
 function sanitizeEmbedding(embedding: unknown): number[] {
   if (!Array.isArray(embedding)) {
@@ -185,49 +108,6 @@ async function safeReadError(response: Response): Promise<string> {
   }
 }
 
-function createLocalEmbeddingVector(text: string): number[] {
-  const tokens = text.toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
-    .split(/\s+/)
-    .filter(token => token.length > 2)
-
-  const embedding = new Array(TARGET_VECTOR_DIMENSION).fill(0)
-
-  tokens.forEach(token => {
-    const hash = simpleHash(token)
-    const positions = [
-      hash % TARGET_VECTOR_DIMENSION,
-      (hash * 2) % TARGET_VECTOR_DIMENSION,
-      (hash * 3) % TARGET_VECTOR_DIMENSION,
-    ]
-
-    positions.forEach(pos => {
-      embedding[pos] += 1 / Math.sqrt(tokens.length)
-    })
-  })
-
-  const norm = Math.sqrt(embedding.reduce((sum, value) => sum + value * value, 0))
-
-  if (norm > 0) {
-    for (let i = 0; i < embedding.length; i++) {
-      embedding[i] /= norm
-    }
-  }
-
-  return embedding
-}
-
-function simpleHash(str: string): number {
-  let hash = 0
-
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
-    hash = hash & hash
-  }
-
-  return Math.abs(hash)
-}
 
 /**
  * Calculate cosine similarity between two vectors

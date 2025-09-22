@@ -3,7 +3,7 @@
  * Validates required environment variables at startup
  */
 
-type EmbeddingProvider = 'openai' | 'anthropic' | 'local'
+type EmbeddingProvider = 'openai'
 
 interface EnvConfig {
   JWT_SECRET: string
@@ -13,7 +13,6 @@ interface EnvConfig {
   OPENAI_API_KEY?: string
   EMBEDDING_PROVIDER?: EmbeddingProvider
   OPENAI_EMBEDDING_MODEL?: string
-  ANTHROPIC_EMBEDDING_MODEL?: string
 }
 
 class ConfigurationError extends Error {
@@ -37,7 +36,7 @@ export function getConfig(): EnvConfig {
   const NODE_ENV = (process.env.NODE_ENV || 'development') as EnvConfig['NODE_ENV']
 
   const rawProvider = process.env.EMBEDDING_PROVIDER?.toLowerCase()
-  const EMBEDDING_PROVIDER = rawProvider === 'openai' || rawProvider === 'anthropic' || rawProvider === 'local'
+  const EMBEDDING_PROVIDER = rawProvider === 'openai'
     ? (rawProvider as EmbeddingProvider)
     : undefined
 
@@ -63,7 +62,6 @@ export function getConfig(): EnvConfig {
         OPENAI_API_KEY: process.env.OPENAI_API_KEY,
         EMBEDDING_PROVIDER,
         OPENAI_EMBEDDING_MODEL: process.env.OPENAI_EMBEDDING_MODEL,
-        ANTHROPIC_EMBEDDING_MODEL: process.env.ANTHROPIC_EMBEDDING_MODEL,
       }
       return config
     }
@@ -79,7 +77,6 @@ export function getConfig(): EnvConfig {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     EMBEDDING_PROVIDER,
     OPENAI_EMBEDDING_MODEL: process.env.OPENAI_EMBEDDING_MODEL,
-    ANTHROPIC_EMBEDDING_MODEL: process.env.ANTHROPIC_EMBEDDING_MODEL,
   }
 
   return config
