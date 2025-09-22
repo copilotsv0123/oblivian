@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import StudyCompletionOverlay from '@/components/StudyCompletionOverlay'
+import { ApiError } from '@/lib/client/api-client'
+import { deckRepo, reviewRepo, sessionRepo, studyRepo } from '@/lib/client/repositories'
 
 interface Card {
   id: string
@@ -22,6 +24,13 @@ interface StudyStats {
   new: number
   total: number
 }
+
+interface DeckMetadata {
+  title?: string
+  autoRevealSeconds?: number | null
+}
+
+type ReviewActionRating = 'again' | 'hard' | 'good' | 'easy' | 'skip'
 
 export default function StudyPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
@@ -48,36 +57,24 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
 
   const initSession = useCallback(async () => {
     try {
-      const sessionRes = await fetch(`/api/study/${resolvedParams.id}/session`, {
-        method: 'POST',
-      })
-      if (!sessionRes.ok) {
-        if (sessionRes.status === 401) {
-          const returnUrl = encodeURIComponent(`/study/${resolvedParams.id}`)
-          router.push(`/login?returnUrl=${returnUrl}`)
-          return
-        }
-        throw new Error('Failed to create session')
-      }
-      const sessionData = await sessionRes.json()
+      const sessionData = await sessionRepo.create(resolvedParams.id)
       setSessionId(sessionData.session.id)
 
-      const queueRes = await fetch(`/api/study/${resolvedParams.id}/queue`)
-      if (!queueRes.ok) {
-        throw new Error('Failed to fetch study queue')
-      }
-      const queueData = await queueRes.json()
+      const queueData = await studyRepo.getQueue<Card>(resolvedParams.id)
       setCards(queueData.cards)
       setStats(queueData.stats)
       setWarning(queueData.warning)
 
-      // Fetch deck info for title and auto reveal seconds
-      const deckRes = await fetch(`/api/decks/${resolvedParams.id}`)
-      if (deckRes.ok) {
-        const deckData = await deckRes.json()
-        setDeckTitle(deckData.deck.title)
-        setAutoRevealSeconds(deckData.deck.autoRevealSeconds || 5)
-        setTimeRemaining(deckData.deck.autoRevealSeconds || 5)
+      try {
+        const deckData = await deckRepo.getById<DeckMetadata>(resolvedParams.id)
+        if (deckData?.deck) {
+          const revealSeconds = deckData.deck.autoRevealSeconds ?? 5
+          setDeckTitle(deckData.deck.title ?? '')
+          setAutoRevealSeconds(revealSeconds)
+          setTimeRemaining(revealSeconds)
+        }
+      } catch (deckError) {
+        console.error('Error fetching deck details:', deckError)
       }
 
       // Start session timer
@@ -91,6 +88,11 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
 
       // Auto-answer timer will be started via useEffect
     } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        const returnUrl = encodeURIComponent(`/study/${resolvedParams.id}`)
+        router.push(`/login?returnUrl=${returnUrl}`)
+        return
+      }
       console.error('Error initializing study session:', error)
     } finally {
       setLoading(false)
@@ -160,7 +162,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
     }
   }, [showAnswer, currentIndex, cards.length, handleConfidenceSelect, autoRevealSeconds])
 
-  const handleReview = useCallback(async (rating: 'again' | 'hard' | 'good' | 'easy' | 'skip') => {
+  const handleReview = useCallback(async (rating: ReviewActionRating) => {
     if (!cards[currentIndex]) return
 
     const timeSpent = Math.floor((Date.now() - cardStartTime) / 1000)
@@ -188,33 +190,27 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
 
       // For the last card, we need to wait for both API calls to complete
       // before showing the achievement overlay
-      const promises = []
+      const promises: Promise<unknown>[] = []
 
       if (rating !== 'skip') {
         promises.push(
-          fetch(`/api/study/${resolvedParams.id}/review`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              cardId: currentCardId,
-              rating,
-              sessionId,
-              timeSpent,
-            }),
+          reviewRepo.submit(resolvedParams.id, {
+            cardId: currentCardId,
+            rating,
+            sessionId: sessionId ?? undefined,
+            timeSpent,
           })
         )
       }
 
-      promises.push(
-        fetch(`/api/study/${resolvedParams.id}/session`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+      if (sessionId) {
+        promises.push(
+          sessionRepo.update(resolvedParams.id, {
             sessionId,
             secondsActive: sessionTime,
-          }),
-        })
-      )
+          })
+        )
+      }
 
       // Wait for all API calls to complete before showing achievement
       Promise.all(promises)
@@ -232,18 +228,16 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
 
     // Send API calls asynchronously (fire and forget) for non-last cards
     if (rating !== 'skip') {
-      fetch(`/api/study/${resolvedParams.id}/review`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      reviewRepo
+        .submit(resolvedParams.id, {
           cardId: currentCardId,
           rating,
-          sessionId,
+          sessionId: sessionId ?? undefined,
           timeSpent,
-        }),
-      }).catch(error => {
-        console.error('Error recording review:', error)
-      })
+        })
+        .catch(error => {
+          console.error('Error recording review:', error)
+        })
     }
   }, [cards, currentIndex, cardStartTime, resolvedParams.id, sessionId, sessionTime, handleConfidenceSelect, autoRevealSeconds])
 

@@ -5,28 +5,12 @@ import Link from 'next/link'
 import { Trophy, TrendingUp, Clock, Target, ArrowRight } from 'lucide-react'
 import { StudyAchievementOverlay } from './StudyAchievementOverlay'
 import { useStudyAchievements } from '@/hooks/useStudyAchievements'
-
-interface SessionPerformance {
-  sessionId: string
-  startedAt: string
-  endedAt: string | null
-  secondsActive: number
-  totalReviews: number
-  cardsReviewed: number
-  performanceGrade: string | null
-  successRate: number | null
-}
-
-interface DeckStats {
-  lastStudyDate: string | null
-  totalSessions: number
-  totalCardsReviewed: number
-  performanceGrade: string | null
-  successRate: number | null
-  reviewCount: number
-  isSessionSpecific: boolean
-  sessionId: string | null
-}
+import {
+  deckRepo,
+  sessionRepo,
+  type DeckStats,
+  type SessionPerformance
+} from '@/lib/client/repositories'
 
 interface SessionCompletionScreenProps {
   deckId: string
@@ -67,44 +51,44 @@ export default function SessionCompletionScreen({
   useEffect(() => {
     const fetchPerformanceData = async () => {
       try {
-        const [sessionRes, sessionStatsRes, historicalStatsRes] = await Promise.all([
-          fetch(`/api/sessions/${sessionId}/performance`),
-          fetch(`/api/decks/${deckId}/stats?sessionId=${sessionId}`),
-          fetch(`/api/decks/${deckId}/stats`)
+        const [sessionResult, sessionStatsResult, historicalStatsResult] = await Promise.allSettled([
+          sessionRepo.getPerformance(sessionId),
+          deckRepo.getStats(deckId, { sessionId }),
+          deckRepo.getStats(deckId)
         ])
 
-        let sessionData = null
-        if (sessionRes.ok) {
-          sessionData = await sessionRes.json()
-          console.log('Session performance data:', sessionData.sessionPerformance)
-          setSessionPerformance(sessionData.sessionPerformance)
+        let performance: SessionPerformance | null = null
+
+        if (sessionResult.status === 'fulfilled') {
+          performance = sessionResult.value.sessionPerformance
+          setSessionPerformance(performance)
         } else {
-          console.error('Session performance fetch failed:', sessionRes.status, await sessionRes.text())
+          console.error('Session performance fetch failed:', sessionResult.reason)
         }
 
-        if (sessionStatsRes.ok) {
-          const sessionStatsData = await sessionStatsRes.json()
-          setDeckStats(sessionStatsData.stats)
+        if (sessionStatsResult.status === 'fulfilled') {
+          setDeckStats(sessionStatsResult.value.stats)
+        } else if (sessionStatsResult.status === 'rejected') {
+          console.error('Session stats fetch failed:', sessionStatsResult.reason)
         }
 
-        if (historicalStatsRes.ok) {
-          const historicalData = await historicalStatsRes.json()
-          setHistoricalStats(historicalData.stats)
+        if (historicalStatsResult.status === 'fulfilled') {
+          setHistoricalStats(historicalStatsResult.value.stats)
+        } else if (historicalStatsResult.status === 'rejected') {
+          console.error('Historical stats fetch failed:', historicalStatsResult.reason)
         }
 
-        // Trigger achievement overlay if we have session performance data
-        if (sessionData && sessionData.sessionPerformance) {
-          const performance = sessionData.sessionPerformance
-
-          if (performance.performanceGrade && performance.successRate !== null) {
-            // Trigger the achievement overlay
-            triggerSessionComplete(deckTitle, {
-              grade: performance.performanceGrade,
-              successRate: performance.successRate,
-              cardsReviewed: performance.cardsReviewed,
-              timeSpent: performance.secondsActive
-            })
-          }
+        if (
+          performance &&
+          performance.performanceGrade &&
+          performance.successRate !== null
+        ) {
+          triggerSessionComplete(deckTitle, {
+            grade: performance.performanceGrade,
+            successRate: performance.successRate,
+            cardsReviewed: performance.cardsReviewed,
+            timeSpent: performance.secondsActive
+          })
         }
       } catch (error) {
         console.error('Error fetching performance data:', error)

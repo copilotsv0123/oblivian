@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { StudyAchievementOverlay } from './StudyAchievementOverlay'
 import { useStudyAchievements } from '@/hooks/useStudyAchievements'
+import { sessionRepo, type SessionPerformance } from '@/lib/client/repositories'
 
 interface StudyCompletionOverlayProps {
   isVisible: boolean
@@ -19,7 +20,7 @@ export default function StudyCompletionOverlay({
   deckTitle,
   onComplete
 }: StudyCompletionOverlayProps) {
-  const [sessionPerformance, setSessionPerformance] = useState<any>(null)
+  const [sessionPerformance, setSessionPerformance] = useState<SessionPerformance | null>(null)
   const [loading, setLoading] = useState(true)
 
   const { achievement, triggerSessionComplete, hideAchievement } = useStudyAchievements()
@@ -29,21 +30,17 @@ export default function StudyCompletionOverlay({
 
     const fetchSessionPerformance = async () => {
       try {
-        const sessionRes = await fetch(`/api/sessions/${sessionId}/performance`)
+        const sessionData = await sessionRepo.getPerformance(sessionId)
+        const performance = sessionData.sessionPerformance
+        setSessionPerformance(performance)
 
-        if (sessionRes.ok) {
-          const sessionData = await sessionRes.json()
-          const performance = sessionData.sessionPerformance
-          setSessionPerformance(performance)
-
-          if (performance && performance.cardsReviewed > 0) {
-            triggerSessionComplete(deckTitle, {
-              grade: performance.performanceGrade || 'F',
-              successRate: performance.successRate || 0,
-              cardsReviewed: performance.cardsReviewed,
-              timeSpent: performance.secondsActive
-            })
-          }
+        if (performance && performance.cardsReviewed > 0) {
+          triggerSessionComplete(deckTitle, {
+            grade: performance.performanceGrade || 'F',
+            successRate: performance.successRate || 0,
+            cardsReviewed: performance.cardsReviewed,
+            timeSpent: performance.secondsActive
+          })
         }
       } catch (error) {
         console.error('Error fetching session performance:', error)

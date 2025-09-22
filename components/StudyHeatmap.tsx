@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Tooltip from "./Tooltip";
+import { studyRepo } from "@/lib/client/repositories";
 
 interface HeatmapData {
   [date: string]: {
@@ -17,11 +18,8 @@ export default function StudyHeatmap() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("/api/study/heatmap");
-        if (res.ok) {
-          const result = await res.json();
-          setData(result.heatmapData);
-        }
+        const result = await studyRepo.getHeatmap();
+        setData(result.heatmapData);
       } catch (error) {
         console.error("Error fetching heatmap data:", error);
       } finally {
