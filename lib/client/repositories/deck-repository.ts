@@ -26,7 +26,7 @@ export class DeckRepository extends BaseRepository {
     super(apiClient)
   }
 
-  get<TDeck = unknown>(deckId: string) {
+  getById<TDeck = unknown>(deckId: string) {
     return this.get<DeckDetails<TDeck>>(`/api/decks/${deckId}`)
   }
 

@@ -66,7 +66,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
       setWarning(queueData.warning)
 
       try {
-        const deckData = await deckRepo.get<DeckMetadata>(resolvedParams.id)
+        const deckData = await deckRepo.getById<DeckMetadata>(resolvedParams.id)
         if (deckData?.deck) {
           const revealSeconds = deckData.deck.autoRevealSeconds ?? 5
           setDeckTitle(deckData.deck.title ?? '')
