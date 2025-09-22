@@ -5,6 +5,7 @@ import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
 import StudyHeatmap from '@/components/StudyHeatmap'
 import TagFilter from '@/components/TagFilter'
+import { type Grade } from '@/lib/utils/grades'
 
 interface Deck {
   id: string
@@ -18,6 +19,8 @@ interface Deck {
   createdAt: string
   updatedAt: string
   cardCount?: number
+  grade?: Grade | null
+  bestAccuracy?: number | null
 }
 
 export default function DashboardPage() {
@@ -197,10 +200,20 @@ export default function DashboardPage() {
                     : 'hover:border-indigo-500 hover:card-hover-gradient'
                 } ${index % 2 === 0 ? 'hover:rotate-1' : 'hover:-rotate-1'}`}
               >
+                {/* Grade display */}
+                {deck.grade && (
+                  <div
+                    className="absolute top-1 right-1 z-30 transform rotate-[5deg] group-hover:rotate-0 px-2 py-1 text-xs font-black rounded shadow-lg text-white border border-white/20 opacity-70 group-hover:opacity-100 transition-all duration-200"
+                    style={{ backgroundColor: deck.grade.color }}
+                  >
+                    {deck.grade.label}
+                  </div>
+                )}
+
                 {/* Star button */}
                 <button
                   onClick={(e) => toggleStar(e, deck.id)}
-                  className={`absolute top-2 right-2 z-20 p-1.5 rounded-lg transition-all duration-200 ${
+                  className={`absolute ${deck.grade ? 'top-8 right-2' : 'top-2 right-2'} z-20 p-1.5 rounded-lg transition-all duration-200 ${
                     deck.starred
                       ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-100 opacity-100'
                       : 'text-gray-400 hover:text-yellow-500 hover:bg-gray-100 opacity-0 group-hover:opacity-100'

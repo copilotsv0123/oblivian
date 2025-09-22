@@ -1,8 +1,9 @@
 import { db } from '@/lib/db'
-import { decks, cards, userDeckStars, type Deck, type NewDeck } from '@/lib/db'
+import { decks, cards, userDeckStars, deckScores, type Deck, type NewDeck } from '@/lib/db'
 import { eq, and, desc, sql, or, like, inArray } from 'drizzle-orm'
 import { BaseRepository, CreateResult, UpdateResult, DeleteResult } from './base-repository'
 import { CreateDeckInput, UpdateDeckInput, DeckFilters, parseTagsFromJson, tagsToJson, normalizeTags } from '@/lib/types/decks'
+import { calculateGrade, getBestGrade, type Grade } from '@/lib/utils/grades'
 
 export class DeckRepository extends BaseRepository {
   // Helper function to transform raw deck results and parse JSON tags
@@ -70,6 +71,45 @@ export class DeckRepository extends BaseRepository {
       .orderBy(desc(decks.updatedAt))
 
     return this.transformDeckResults(results)
+  }
+
+  async findForDashboardWithGrades(userId: string) {
+    // Get ALL decks with starred status and best grade for current user
+    const results = await db
+      .select({
+        id: decks.id,
+        ownerUserId: decks.ownerUserId,
+        title: decks.title,
+        description: decks.description,
+        level: decks.level,
+        language: decks.language,
+        isPublic: decks.isPublic,
+        tags: decks.tags,
+        autoRevealSeconds: decks.autoRevealSeconds,
+        starred: sql<boolean>`EXISTS (SELECT 1 FROM user_deck_stars WHERE user_id = ${userId} AND deck_id = decks.id)`.as('starred'),
+        createdAt: decks.createdAt,
+        updatedAt: decks.updatedAt,
+        cardCount: sql<number>`(SELECT COUNT(*) FROM cards WHERE deck_id = decks.id)`.as('card_count'),
+        bestAccuracy: sql<number>`(
+          SELECT MAX(accuracy_pct)
+          FROM deck_scores
+          WHERE deck_id = decks.id AND user_id = ${userId}
+        )`.as('best_accuracy')
+      })
+      .from(decks)
+      .orderBy(desc(decks.updatedAt))
+
+    const decksWithTags = this.transformDeckResults(results)
+
+    // Add grade information to each deck
+    return decksWithTags.map(deck => {
+      const grade = deck.bestAccuracy !== null ? calculateGrade(deck.bestAccuracy) : null
+      return {
+        ...deck,
+        grade,
+        bestAccuracy: deck.bestAccuracy
+      }
+    })
   }
 
   async findByUserId(userId: string, includeCardCount = false) {

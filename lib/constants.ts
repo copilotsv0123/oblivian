@@ -28,10 +28,10 @@ export const DECK_GRADE_LABELS = {
 } as const
 
 export const DECK_GRADE_COLORS = {
-  A_PLUS: 'text-green-600',
-  A: 'text-green-500',
-  B: 'text-blue-500',
-  C: 'text-yellow-500',
-  D: 'text-orange-500',
-  F: 'text-red-500'
+  A_PLUS: '#16a34a', // green-600
+  A: '#22c55e',      // green-500
+  B: '#3b82f6',      // blue-500
+  C: '#eab308',      // yellow-500
+  D: '#f97316',      // orange-500
+  F: '#ef4444'       // red-500
 } as const
