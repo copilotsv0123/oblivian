@@ -484,9 +484,9 @@ export default function DeckPage({
                     Show the cards
                   </button>
                 </div>
+              </div>
             )}
           </div>
-        </div>
         )}
         {/* Similar Decks Section */}
         {similarDecks.length > 0 && (
