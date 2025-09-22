@@ -10,7 +10,7 @@ import type { GoogleTokens } from './googleOAuth'
 const SESSION_COOKIE_NAME = 'oblivian-session'
 const OAUTH_STATE_COOKIE_NAME = 'google-oauth-state'
 
-interface OAuthStatePayload {
+interface OAuthStatePayload extends Record<string, any> {
   state: string
   codeVerifier: string
   returnUrl?: string
