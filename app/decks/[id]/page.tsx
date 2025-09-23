@@ -59,7 +59,6 @@ export default function DeckPage({
   const [similarDecks, setSimilarDecks] = useState<any[]>([]);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [showCards, setShowCards] = useState(false);
-  const [showSimilarDecks, setShowSimilarDecks] = useState(false);
   const [stats, setStats] = useState<DeckStats | null>(null);
   const [cardPerformance, setCardPerformance] = useState<
     Record<
@@ -128,7 +127,6 @@ export default function DeckPage({
 
   const fetchSimilarDecks = useCallback(async () => {
     try {
-      console.log("coucou");
       const res = await fetch(`/api/decks/${resolvedParams.id}/similar`);
       if (res.ok) {
         const data = await res.json();
@@ -140,7 +138,6 @@ export default function DeckPage({
   }, [resolvedParams.id]);
 
   useEffect(() => {
-    console.log("effect?");
     fetchDeck();
     fetchSimilarDecks();
   }, [fetchDeck, fetchSimilarDecks]);
@@ -490,50 +487,36 @@ export default function DeckPage({
         )}
         {/* Similar Decks Section */}
         {similarDecks.length > 0 && (
-          <div className="mt-12 space-y-4">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold text-primary">
-                Similar Decks ({similarDecks.length})
-              </h2>
-              <button
-                onClick={() => setShowSimilarDecks(!showSimilarDecks)}
-                className="text-gray-600 hover:text-primary transition-colors"
-              >
-                {showSimilarDecks ? (
-                  <ChevronUp className="w-5 h-5" />
-                ) : (
-                  <ChevronDown className="w-5 h-5" />
-                )}
-              </button>
+          <div className="mt-12">
+            <h2 className="text-xl font-semibold text-primary mb-4">
+              Similar Decks
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {similarDecks.map((deck) => (
+                <Link
+                  key={deck.id}
+                  href={`/decks/${deck.id}`}
+                  className="card hover:shadow-lg transition-shadow"
+                >
+                  <h3 className="font-semibold text-primary mb-2">
+                    {deck.title}
+                  </h3>
+                  {deck.description && (
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                      {deck.description}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span className="bg-primary/10 text-primary px-2 py-1 rounded">
+                      {deck.level}
+                    </span>
+                    <span>
+                      {Math.round((deck.similarity || 0) * 100)}% match
+                    </span>
+                  </div>
+                </Link>
+              ))}
             </div>
-            {showSimilarDecks && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {similarDecks.map((deck) => (
-                  <Link
-                    key={deck.id}
-                    href={`/decks/${deck.id}`}
-                    className="card hover:shadow-lg transition-shadow"
-                  >
-                    <h3 className="font-semibold text-primary mb-2">
-                      {deck.title}
-                    </h3>
-                    {deck.description && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                        {deck.description}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span className="bg-primary/10 text-primary px-2 py-1 rounded">
-                        {deck.level}
-                      </span>
-                      <span>
-                        {Math.round((deck.similarity || 0) * 100)}% match
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
           </div>
         )}
 

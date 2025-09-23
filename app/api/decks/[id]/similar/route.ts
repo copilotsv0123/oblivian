@@ -9,11 +9,10 @@ export const GET = withApiHandler(
     const { params } = routeContext as { params: Promise<{ id: string }> };
     const { id: deckId } = await params;
 
-    // Ensure deck has embedding
     await generateDeckEmbedding(deckId);
 
     // Find similar decks
-    const similarDecks = await findSimilarDecks(deckId, 5);
+    const similarDecks = await findSimilarDecks(deckId, 10);
 
     return {
       decks: similarDecks,
