@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateRequest } from '@/lib/auth/middleware'
 
+/**
+ * Custom API error class for consistent error handling
+ */
+export class ApiError extends Error {
+  statusCode: number
+
+  constructor(message: string, statusCode: number = 500) {
+    super(message)
+    this.name = 'ApiError'
+    this.statusCode = statusCode
+  }
+}
+
 export interface ApiContext {
   user: {
     id: string
@@ -77,6 +90,14 @@ export function withApiHandler<T = any, P = any>(
     } catch (error) {
       console.error('API Error:', error)
 
+      // Handle ApiError instances with their specific status codes
+      if (error instanceof ApiError) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: error.statusCode }
+        )
+      }
+
       // Handle known error types
       if (error instanceof Error) {
         // Check for specific error types
@@ -86,14 +107,14 @@ export function withApiHandler<T = any, P = any>(
             { status: 404 }
           )
         }
-        if (error.message.includes('unauthorized') || 
+        if (error.message.includes('unauthorized') ||
             error.message.includes('forbidden')) {
           return NextResponse.json(
             { error: error.message },
             { status: 403 }
           )
         }
-        if (error.message.includes('bad request') || 
+        if (error.message.includes('bad request') ||
             error.message.includes('invalid')) {
           return NextResponse.json(
             { error: error.message },

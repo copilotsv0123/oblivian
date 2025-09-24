@@ -1,5 +1,25 @@
 # Oblivian - Feature TODO List
 
+Smart Features
+
+  - Event-based generation: "Today in history", seasonal content
+  - Content enhancement: Add mnemonics, examples to existing cards
+  - Smart suggestions: Based on user learning patterns
+  - Deck expansion: Add related topics automatically
+
+🎨 UI Integration Points
+
+  1. Deck Pages: Quick "Generate 5 cards" buttons
+  2. Dashboard: Daily AI suggestions, trending topics
+  3. Study Sessions: Post-session expansion suggestions
+
+User Tiers
+
+  - Free: 10 requests/month, 5 cards max, cooldown limits
+  - Premium: 100 requests/month, 15 cards max
+  - Unlimited: No limits, access to premium models
+
+
 ## High Priority Features
 
 ### 1. AI Memory Coach ⭐

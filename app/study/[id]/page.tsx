@@ -508,7 +508,7 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
 
                 {currentCard.advancedNotes && (
                   <div className="p-3 sm:p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                    <div className="prose prose-sm sm:prose-lg max-w-none text-gray-700">
+                    <div className="prose prose-sm sm:prose-lg max-w-none text-gray-700 dark:text-gray-300">
                       <ReactMarkdown>
                         {currentCard.advancedNotes}
                       </ReactMarkdown>
@@ -517,11 +517,9 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
                 )}
 
                 {currentCard.mnemonics && (
-                  <div className="p-3 sm:p-4 bg-amber-50 rounded-lg border border-amber-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-amber-600 font-medium text-sm">🧠 Memory Aid</span>
-                    </div>
-                    <div className="prose prose-sm sm:prose-lg max-w-none text-gray-700">
+                  <div className="p-3 sm:p-4 bg-amber-50 rounded-lg border border-amber-200 relative">
+                    <span className="absolute -top-2 -right-2 text-2xl rotate-12 hover:animate-spin transition-all duration-300">💡</span>
+                    <div className="prose prose-sm sm:prose-lg max-w-none text-gray-700 dark:text-gray-300 pr-6">
                       <ReactMarkdown>
                         {currentCard.mnemonics}
                       </ReactMarkdown>

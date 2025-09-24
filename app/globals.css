@@ -136,6 +136,22 @@
     background-color: hsl(var(--primary) / 0.18);
   }
 
+  .dark .bg-amber-50 {
+    background-color: hsl(45 96% 61% / 0.18);
+  }
+
+  .dark .border-amber-200 {
+    border-color: hsl(45 96% 61% / 0.3);
+  }
+
+  .dark .border-indigo-200 {
+    border-color: hsl(var(--primary) / 0.3);
+  }
+
+  .dark .text-amber-600 {
+    color: hsl(45 96% 61% / 0.8);
+  }
+
   .dark .bg-gray-900 {
     background-color: hsl(var(--popover));
     color: hsl(var(--popover-foreground));
