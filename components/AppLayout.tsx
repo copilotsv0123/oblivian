@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Home, Trophy, Sparkles, Settings, LogOut, Menu, X } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 import { useAuth } from '@/components/auth/AuthProvider'
+import { achievementsRepo, deckRepo } from '@/lib/client/repositories'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -31,8 +32,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       return
     }
 
-    fetch('/api/achievements')
-      .then(res => res.json())
+    achievementsRepo.getAll()
       .then(achievementData => {
         if (achievementData.achievements) {
           const earned = achievementData.achievements.filter((a: any) => a.unlockedAt).length
@@ -51,10 +51,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const handleRandomStudy = useCallback(async () => {
     try {
       // Fetch user's decks with card counts
-      const res = await fetch('/api/decks')
-      if (!res.ok) return
-
-      const data = await res.json()
+      const data = await deckRepo.getAll()
       const decksWithCards = data.decks.filter((deck: { cardCount?: number }) => (deck.cardCount || 0) > 0)
 
       if (decksWithCards.length === 0) {

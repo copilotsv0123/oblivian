@@ -1,9 +1,17 @@
 import { apiClient } from '@/lib/client/api-client'
 import { BaseRepository } from './base-repository'
+import { DeckWithTags } from '@/lib/types/decks'
+import { Card } from '@/lib/types/cards'
 
-export interface DeckDetails<TDeck = unknown> {
+// API response version with string dates
+export interface DeckResponse extends Omit<DeckWithTags, 'createdAt' | 'updatedAt'> {
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DeckDetails<TDeck = DeckWithTags> {
   deck: TDeck
-  cards?: unknown[]
+  cards?: Card[]
 }
 
 export interface DeckStats {
@@ -21,13 +29,47 @@ export interface DeckStatsResponse {
   stats: DeckStats
 }
 
+export interface CardPerformance {
+  difficulty: "easy" | "medium" | "hard" | "unreviewed"
+  successRate: number
+  recentReviews: Array<"again" | "hard" | "good" | "easy">
+}
+
+export interface SimilarDeck {
+  id: string
+  title: string
+  description: string | null
+  level: string
+  similarity: number
+}
+
+export interface CreateDeckData {
+  title: string
+  description?: string
+  level?: string
+  language?: string
+  isPublic?: boolean
+}
+
 export class DeckRepository extends BaseRepository {
   constructor() {
     super(apiClient)
   }
 
-  getById<TDeck = unknown>(deckId: string) {
+  getAll() {
+    return this.get<{ decks: DeckResponse[] }>(`/api/decks`)
+  }
+
+  getById<TDeck = DeckResponse>(deckId: string) {
     return this.get<DeckDetails<TDeck>>(`/api/decks/${deckId}`)
+  }
+
+  create(data: CreateDeckData) {
+    return this.post<{ deck: DeckResponse }>('/api/decks', data)
+  }
+
+  async star(deckId: string) {
+    return this.post<{ deck: { starred: boolean } }>(`/api/decks/${deckId}/star`)
   }
 
   async getStats(deckId: string, params: { sessionId?: string } = {}) {
@@ -56,6 +98,14 @@ export class DeckRepository extends BaseRepository {
         sessionId: stats.sessionId ?? null,
       },
     } satisfies DeckStatsResponse
+  }
+
+  getCardPerformance(deckId: string) {
+    return this.get<{ cardPerformance: Record<string, CardPerformance> }>(`/api/decks/${deckId}/card-performance`)
+  }
+
+  getSimilar(deckId: string) {
+    return this.get<{ decks: SimilarDeck[], count: number }>(`/api/decks/${deckId}/similar`)
   }
 }
 

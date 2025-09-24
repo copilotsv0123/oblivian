@@ -6,26 +6,17 @@ import AppLayout from '@/components/AppLayout'
 import StudyHeatmap from '@/components/StudyHeatmap'
 import TagFilter from '@/components/TagFilter'
 import { type Grade } from '@/lib/utils/grades'
+import { deckRepo, type DeckResponse } from '@/lib/client/repositories'
 
-interface Deck {
-  id: string
-  title: string
-  description: string | null
-  level: string
-  language: string
-  isPublic: boolean
-  starred: boolean
-  tags: string[]
-  createdAt: string
-  updatedAt: string
+interface DeckWithStats extends DeckResponse {
   cardCount?: number
   grade?: Grade | null
   bestAccuracy?: number | null
 }
 
 export default function DashboardPage() {
-  const [decks, setDecks] = useState<Deck[]>([])
-  const [allDecks, setAllDecks] = useState<Deck[]>([])
+  const [decks, setDecks] = useState<DeckWithStats[]>([])
+  const [allDecks, setAllDecks] = useState<DeckWithStats[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState<string>('')
@@ -35,17 +26,13 @@ export default function DashboardPage() {
 
   const fetchDecks = useCallback(async () => {
     try {
-      const res = await fetch('/api/decks')
-      if (!res.ok) {
-        throw new Error('Failed to fetch decks')
-      }
-      const data = await res.json()
+      const data = await deckRepo.getAll()
       setAllDecks(data.decks)
       setDecks(data.decks)
 
       // Extract unique tags from all decks
       const allTagsSet = new Set<string>()
-      data.decks.forEach((deck: Deck) => {
+      data.decks.forEach((deck: DeckResponse) => {
         if (deck.tags) {
           deck.tags.forEach((tag: string) => allTagsSet.add(tag))
         }
@@ -63,16 +50,10 @@ export default function DashboardPage() {
     e.stopPropagation()
 
     try {
-      const res = await fetch(`/api/decks/${deckId}/star`, {
-        method: 'POST'
-      })
-      if (!res.ok) {
-        throw new Error('Failed to toggle star')
-      }
-      const data = await res.json()
+      const data = await deckRepo.star(deckId)
 
       // Update both allDecks and decks
-      const updateDecks = (deckList: Deck[]) =>
+      const updateDecks = (deckList: DeckWithStats[]) =>
         deckList.map(d => d.id === deckId ? { ...d, starred: data.deck.starred } : d)
 
       setAllDecks(updateDecks)
@@ -308,16 +289,7 @@ function CreateDeckModal({
     setLoading(true)
 
     try {
-      const res = await fetch('/api/decks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, level, language, isPublic }),
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to create deck')
-      }
-
+      await deckRepo.create({ title, description, level, language, isPublic })
       onCreated()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')

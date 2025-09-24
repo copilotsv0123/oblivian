@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { authRepo } from '@/lib/client/repositories'
 
 export interface AuthenticatedUser {
   id: string
@@ -21,54 +22,6 @@ export interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
-async function fetchSession() {
-  const res = await fetch('/api/auth/session', {
-    method: 'GET',
-    credentials: 'include',
-    cache: 'no-store',
-  })
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch session')
-  }
-
-  return res.json() as Promise<{
-    authenticated: boolean
-    user: AuthenticatedUser | null
-    expiresAt?: string
-  }>
-}
-
-async function initiateGoogleLogin(returnUrl?: string) {
-  const res = await fetch('/api/auth/google/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify({ returnUrl }),
-  })
-
-  const data = await res.json()
-
-  if (!res.ok || !data.url) {
-    throw new Error(data.error || 'Failed to start Google authentication')
-  }
-
-  window.location.href = data.url
-}
-
-async function terminateSession() {
-  const res = await fetch('/api/auth/logout', {
-    method: 'POST',
-    credentials: 'include',
-  })
-
-  if (!res.ok) {
-    throw new Error('Failed to logout')
-  }
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthenticatedUser | null>(null)
   const [loading, setLoading] = useState(true)
@@ -80,12 +33,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null)
 
     try {
-      const data = await fetchSession()
+      const data = await authRepo.getSession()
       if (data.authenticated && data.user) {
         setUser({
           id: data.user.id,
           email: data.user.email,
-          name: data.user.name,
+          name: data.user.name || '',
           avatarUrl: data.user.avatarUrl ?? null,
         })
         setExpiresAt(data.expiresAt ? new Date(data.expiresAt) : null)
@@ -110,7 +63,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (returnUrl?: string) => {
     setError(null)
     try {
-      await initiateGoogleLogin(returnUrl)
+      const data = await authRepo.initiateGoogleLogin(returnUrl)
+      window.location.href = data.url
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : 'Failed to initiate login')
@@ -120,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     setError(null)
     try {
-      await terminateSession()
+      await authRepo.logout()
       setUser(null)
       setExpiresAt(null)
     } catch (err) {

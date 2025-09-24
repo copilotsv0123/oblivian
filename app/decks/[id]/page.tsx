@@ -16,25 +16,10 @@ import {
   XCircle,
 } from "lucide-react";
 import Tooltip from "@/components/Tooltip";
+import { deckRepo, cardRepo, type DeckResponse } from "@/lib/client/repositories";
+import { Card } from '@/lib/types/cards';
 
-interface Card {
-  id: string;
-  type: string;
-  front: string;
-  back?: string;
-  choices?: string;
-  explanation?: string;
-  advancedNotes?: string;
-  mnemotechnic?: string;
-}
-
-interface Deck {
-  id: string;
-  title: string;
-  description: string | null;
-  level: string;
-  starred: boolean;
-}
+type Deck = DeckResponse;
 
 interface DeckStats {
   lastStudyDate: string | null;
@@ -75,13 +60,7 @@ export default function DeckPage({
     if (!deck) return;
 
     try {
-      const res = await fetch(`/api/decks/${deck.id}/star`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        throw new Error("Failed to toggle star");
-      }
-      const data = await res.json();
+      const data = await deckRepo.star(deck.id);
       setDeck({ ...deck, starred: data.deck.starred });
     } catch (error) {
       console.error("Error toggling star:", error);
@@ -90,32 +69,29 @@ export default function DeckPage({
 
   const fetchDeck = useCallback(async () => {
     try {
-      const [deckRes, statsRes, perfRes] = await Promise.all([
-        fetch(`/api/decks/${resolvedParams.id}`),
-        fetch(`/api/decks/${resolvedParams.id}/stats`),
-        fetch(`/api/decks/${resolvedParams.id}/card-performance`),
+      const [deckData, statsData, perfData] = await Promise.all([
+        deckRepo.getById(resolvedParams.id).catch((err) => {
+          if (err.status === 401) {
+            const returnUrl = encodeURIComponent(`/decks/${resolvedParams.id}`);
+            router.push(`/login?returnUrl=${returnUrl}`);
+            return null;
+          }
+          throw err;
+        }),
+        deckRepo.getStats(resolvedParams.id).catch(() => null),
+        deckRepo.getCardPerformance(resolvedParams.id).catch(() => null),
       ]);
 
-      if (!deckRes.ok) {
-        if (deckRes.status === 401) {
-          const returnUrl = encodeURIComponent(`/decks/${resolvedParams.id}`);
-          router.push(`/login?returnUrl=${returnUrl}`);
-          return;
-        }
-        throw new Error("Failed to fetch deck");
+      if (deckData) {
+        setDeck(deckData.deck);
+        setCards(deckData.cards || []);
       }
 
-      const deckData = await deckRes.json();
-      setDeck(deckData.deck);
-      setCards(deckData.cards);
-
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
+      if (statsData) {
         setStats(statsData.stats);
       }
 
-      if (perfRes.ok) {
-        const perfData = await perfRes.json();
+      if (perfData) {
         setCardPerformance(perfData.cardPerformance || {});
       }
     } catch (error) {
@@ -127,11 +103,8 @@ export default function DeckPage({
 
   const fetchSimilarDecks = useCallback(async () => {
     try {
-      const res = await fetch(`/api/decks/${resolvedParams.id}/similar`);
-      if (res.ok) {
-        const data = await res.json();
-        setSimilarDecks(data.decks || []);
-      }
+      const data = await deckRepo.getSimilar(resolvedParams.id);
+      setSimilarDecks(data.decks || []);
     } catch (error) {
       console.error("Error fetching similar decks:", error);
     }
@@ -472,7 +445,7 @@ export default function DeckPage({
                     </div>
                   ))}
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/40 to-transparent pointer-events-none"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/40 to-transparent pointer-events-none"></div>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <button
                     onClick={() => setShowCards(true)}
@@ -558,22 +531,14 @@ function AddCardModal({
     setLoading(true);
 
     try {
-      const res = await fetch("/api/cards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deckId,
-          type,
-          front,
-          back,
-          advancedNotes: advancedNotes || undefined,
-          mnemotechnic: mnemotechnic || undefined,
-        }),
+      await cardRepo.create({
+        deckId,
+        type,
+        front,
+        back,
+        advancedNotes: advancedNotes || undefined,
+        mnemotechnic: mnemotechnic || undefined,
       });
-
-      if (!res.ok) {
-        throw new Error("Failed to add card");
-      }
 
       onAdded();
     } catch (err) {

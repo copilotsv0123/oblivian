@@ -2,15 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import AppLayout from '@/components/AppLayout'
-
-interface ApiToken {
-  id: string
-  name: string
-  tokenPreview: string
-  createdAt: string
-  lastUsedAt: string | null
-  expiresAt: string | null
-}
+import { tokenRepo, type ApiToken } from '@/lib/client/repositories'
 
 export default function SettingsPage() {
   const [tokens, setTokens] = useState<ApiToken[]>([])
@@ -20,11 +12,7 @@ export default function SettingsPage() {
 
   const fetchTokens = useCallback(async () => {
     try {
-      const res = await fetch('/api/tokens')
-      if (!res.ok) {
-        throw new Error('Failed to fetch tokens')
-      }
-      const data = await res.json()
+      const data = await tokenRepo.getAll()
       setTokens(data.tokens)
     } catch (error) {
       console.error('Error fetching tokens:', error)
@@ -43,12 +31,8 @@ export default function SettingsPage() {
     }
 
     try {
-      const res = await fetch(`/api/tokens?id=${tokenId}`, {
-        method: 'DELETE',
-      })
-      if (res.ok) {
-        await fetchTokens()
-      }
+      await tokenRepo.deleteToken(tokenId)
+      await fetchTokens()
     } catch (error) {
       console.error('Error deleting token:', error)
     }
@@ -218,17 +202,7 @@ function CreateTokenModal({
     setLoading(true)
 
     try {
-      const res = await fetch('/api/tokens', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, expiresInDays }),
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to create token')
-      }
-
-      const data = await res.json()
+      const data = await tokenRepo.create({ name, expiresInDays })
       onCreated(data.token.token)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')

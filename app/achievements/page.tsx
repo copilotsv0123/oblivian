@@ -3,47 +3,20 @@
 import { useState, useEffect } from 'react'
 import AppLayout from '@/components/AppLayout'
 import { Trophy, Lock, Star, TrendingUp } from 'lucide-react'
-
-interface AchievementData {
-  id: string
-  name: string
-  description: string
-  icon: string
-  category: string
-  points: number
-  requirement: {
-    type: string
-    value: number
-  }
-  unlocked: boolean
-  unlockedAt: string | null
-  progress: number
-  current: number
-  target: number
-}
-
-interface UserStats {
-  totalSessions: number
-  totalCardsReviewed: number
-  currentStreak: number
-  longestStreak: number
-}
+import { achievementsRepo, type Achievement, type UserStats } from '@/lib/client/repositories'
 
 export default function AchievementsPage() {
-  const [achievements, setAchievements] = useState<AchievementData[]>([])
+  const [achievements, setAchievements] = useState<Achievement[]>([])
   const [totalPoints, setTotalPoints] = useState(0)
   const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
   useEffect(() => {
     const fetchAchievements = async () => {
       try {
-        const res = await fetch('/api/achievements')
-        if (res.ok) {
-          const data = await res.json()
-          setAchievements(data.achievements)
-          setTotalPoints(data.totalPoints)
-          setStats(data.stats)
-        }
+        const data = await achievementsRepo.getAll()
+        setAchievements(data.achievements)
+        setTotalPoints(data.totalPoints || 0)
+        setStats(data.stats || null)
       } catch (error) {
         console.error('Error fetching achievements:', error)
       } finally {

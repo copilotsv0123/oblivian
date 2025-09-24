@@ -3,20 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
-
-interface RankedDeck {
-  id: string
-  title: string
-  description?: string
-  level: string
-  rank?: number
-  score: number
-  stats: {
-    cardsReviewed: number
-    hoursStudied: number
-    uniqueUsers: number
-  }
-}
+import { rankingsRepo, type RankedDeck } from '@/lib/client/repositories'
 
 export default function RankingsPage() {
   const [window, setWindow] = useState<'d7' | 'd30'>('d7')
@@ -26,11 +13,8 @@ export default function RankingsPage() {
   const fetchRankings = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/rankings?window=${window}&limit=20`)
-      if (res.ok) {
-        const data = await res.json()
-        setRankings(data.rankings || [])
-      }
+      const data = await rankingsRepo.getRankings(window, 20)
+      setRankings(data.decks || [])
     } catch (error) {
       console.error('Error fetching rankings:', error)
     } finally {
@@ -44,7 +28,7 @@ export default function RankingsPage() {
 
   const triggerUpdate = async () => {
     try {
-      await fetch('/api/rankings', { method: 'POST' })
+      await rankingsRepo.triggerUpdate()
       await fetchRankings()
     } catch (error) {
       console.error('Error updating rankings:', error)
