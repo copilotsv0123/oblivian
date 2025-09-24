@@ -69,13 +69,14 @@ const TOOLS = [
   },
   {
     name: 'create_cards_batch',
-    description: 'Create multiple flashcards at once',
+    description: 'Create multiple flashcards at once. IMPORTANT: Maximum 15 cards per batch to prevent crashes. For larger sets, split into multiple batches.',
     inputSchema: {
       type: 'object',
       properties: {
         deckId: { type: 'string', description: 'ID of the deck' },
         cards: {
           type: 'array',
+          maxItems: 15,
           items: {
             type: 'object',
             properties: {
@@ -86,6 +87,7 @@ const TOOLS = [
             },
             required: ['front', 'back', 'advancedNotes'],
           },
+          description: 'Array of cards to create. Maximum 15 cards per batch to prevent server crashes.'
         },
       },
       required: ['deckId', 'cards'],
@@ -115,14 +117,15 @@ const TOOLS = [
   },
   {
     name: 'delete_cards_batch',
-    description: 'Delete multiple flashcards at once',
+    description: 'Delete multiple flashcards at once. Maximum 15 cards per batch.',
     inputSchema: {
       type: 'object',
       properties: {
-        cardIds: { 
-          type: 'array', 
+        cardIds: {
+          type: 'array',
+          maxItems: 15,
           items: { type: 'string' },
-          description: 'Array of card IDs to delete' 
+          description: 'Array of card IDs to delete (max 15)'
         },
       },
       required: ['cardIds'],
@@ -146,12 +149,13 @@ const TOOLS = [
   },
   {
     name: 'update_cards_batch',
-    description: 'Update multiple flashcards at once',
+    description: 'Update multiple flashcards at once. Maximum 15 cards per batch.',
     inputSchema: {
       type: 'object',
       properties: {
         cards: {
           type: 'array',
+          maxItems: 15,
           items: {
             type: 'object',
             properties: {
@@ -164,6 +168,7 @@ const TOOLS = [
             },
             required: ['cardId'],
           },
+          description: 'Array of cards to update (max 15)'
         },
       },
       required: ['cards'],
@@ -304,6 +309,9 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
               if (args.cards.length === 0) {
                 throw new Error('At least one card is required')
               }
+              if (args.cards.length > 15) {
+                throw new Error('Maximum 15 cards per batch allowed to prevent server crashes. Please split your cards into smaller batches.')
+              }
 
               // Validate each card has required fields
               args.cards.forEach((card: any, index: number) => {
@@ -348,8 +356,10 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
                   content: [{
                     type: 'text',
                     text: JSON.stringify({
+                      success: true,
                       created: batchResult.count,
-                      cards: batchResult.cards,
+                      deckId: args.deckId,
+                      message: `Successfully created ${batchResult.count} cards`
                     }, null, 2),
                   }],
                 },
@@ -418,6 +428,16 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             }
 
           case 'delete_cards_batch':
+            if (!args.cardIds || !Array.isArray(args.cardIds)) {
+              throw new Error('cardIds array is required')
+            }
+            if (args.cardIds.length === 0) {
+              throw new Error('At least one card ID is required')
+            }
+            if (args.cardIds.length > 15) {
+              throw new Error('Maximum 15 cards per batch allowed for deletion')
+            }
+
             const batchDeleteResult = await cardRepository.deleteBatchWithOwnershipCheck(args.cardIds, userId)
             
             return {
@@ -426,18 +446,27 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
               result: {
                 content: [{
                   type: 'text',
-                  text: JSON.stringify({ 
-                    deleted: batchDeleteResult.success,
-                    count: batchDeleteResult.deletedCount,
-                    deletedIds: batchDeleteResult.deletedIds,
-                    skippedIds: batchDeleteResult.skippedIds,
-                    message: batchDeleteResult.message,
+                  text: JSON.stringify({
+                    success: batchDeleteResult.success,
+                    deleted: batchDeleteResult.deletedCount,
+                    skipped: batchDeleteResult.skippedIds?.length || 0,
+                    message: batchDeleteResult.message || `Successfully deleted ${batchDeleteResult.deletedCount} cards`
                   }, null, 2),
                 }],
               },
             }
 
           case 'update_cards_batch':
+            if (!args.cards || !Array.isArray(args.cards)) {
+              throw new Error('cards array is required')
+            }
+            if (args.cards.length === 0) {
+              throw new Error('At least one card is required')
+            }
+            if (args.cards.length > 15) {
+              throw new Error('Maximum 15 cards per batch allowed for updates')
+            }
+
             const batchUpdateResult = await cardRepository.updateBatchWithOwnershipCheck(userId, args.cards)
 
             return {
@@ -447,11 +476,10 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
                 content: [{
                   type: 'text',
                   text: JSON.stringify({
-                    updated: batchUpdateResult.success,
-                    count: batchUpdateResult.updatedCount,
-                    updatedCards: batchUpdateResult.updatedCards,
-                    skippedIds: batchUpdateResult.skippedIds,
-                    message: batchUpdateResult.message,
+                    success: batchUpdateResult.success,
+                    updated: batchUpdateResult.updatedCount,
+                    skipped: batchUpdateResult.skippedIds?.length || 0,
+                    message: batchUpdateResult.message || `Successfully updated ${batchUpdateResult.updatedCount} cards`
                   }, null, 2),
                 }],
               },
