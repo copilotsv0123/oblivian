@@ -9,7 +9,7 @@ export interface CreateCardData {
   choices?: string
   explanation?: string
   advancedNotes?: string
-  mnemotechnic?: string
+  mnemonics?: string
 }
 
 export interface Card {
@@ -20,7 +20,7 @@ export interface Card {
   choices?: string
   explanation?: string
   advancedNotes?: string
-  mnemotechnic?: string
+  mnemonics?: string
 }
 
 export class CardRepository extends BaseRepository {

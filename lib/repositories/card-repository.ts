@@ -65,7 +65,7 @@ export class CardRepository extends BaseRepository {
         choices: null, // Ignore choices for now
         explanation: null, // Ignore explanation for now
         advancedNotes: input.advancedNotes || null,
-        mnemotechnic: input.mnemotechnic || null,
+        mnemonics: input.mnemonics || null,
       }).returning()
       
       const transformedCard = transformDbCardToApiCard(newCard)
@@ -98,7 +98,7 @@ export class CardRepository extends BaseRepository {
           choices: null, // Ignore choices for now
           explanation: null, // Ignore explanation for now
           advancedNotes: fullInput.advancedNotes || null,
-          mnemotechnic: fullInput.mnemotechnic || null,
+          mnemonics: fullInput.mnemonics || null,
         }).returning()
 
         batchCreated.push(newCard)
@@ -209,7 +209,7 @@ export class CardRepository extends BaseRepository {
     // if (input.choices !== undefined) updateData.choices = JSON.stringify(input.choices)
     // if (input.explanation !== undefined) updateData.explanation = input.explanation
     if (input.advancedNotes !== undefined) updateData.advancedNotes = input.advancedNotes
-    if (input.mnemotechnic !== undefined) updateData.mnemotechnic = input.mnemotechnic
+    if (input.mnemonics !== undefined) updateData.mnemonics = input.mnemonics
     
     if (Object.keys(updateData).length === 0) {
       return null

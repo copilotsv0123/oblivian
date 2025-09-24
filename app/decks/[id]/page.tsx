@@ -342,9 +342,9 @@ export default function DeckPage({
                       key={card.id}
                       className={`card group transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:border-indigo-500 hover:card-hover-gradient hover:z-10 relative ${
                         index % 2 === 0 ? "hover:rotate-1" : "hover:-rotate-1"
-                      } ${card.advancedNotes || card.mnemotechnic ? "cursor-pointer" : ""}`}
+                      } ${card.advancedNotes || card.mnemonics ? "cursor-pointer" : ""}`}
                       onClick={() => {
-                        if (card.advancedNotes || card.mnemotechnic) {
+                        if (card.advancedNotes || card.mnemonics) {
                           const newExpanded = new Set(expandedCards);
                           if (newExpanded.has(card.id)) {
                             newExpanded.delete(card.id);
@@ -365,7 +365,7 @@ export default function DeckPage({
                               <span className="md:blur-[3px] md:group-hover:blur-none transition-all duration-200">
                                 {card.back || ""}
                               </span>
-                              {(card.advancedNotes || card.mnemotechnic) && (
+                              {(card.advancedNotes || card.mnemonics) && (
                                 <span className="inline-flex items-center gap-0.5 ml-2 text-sm text-indigo-600 align-middle">
                                   <span className="text-xs">
                                     {expandedCards.has(card.id)
@@ -388,7 +388,7 @@ export default function DeckPage({
                                   </p>
                                 </div>
                               )}
-                            {card.mnemotechnic &&
+                            {card.mnemonics &&
                               expandedCards.has(card.id) && (
                                 <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
                                   <div className="flex items-center gap-2 mb-2">
@@ -397,7 +397,7 @@ export default function DeckPage({
                                     </span>
                                   </div>
                                   <p className="text-gray-700 whitespace-pre-wrap">
-                                    {card.mnemotechnic}
+                                    {card.mnemonics}
                                   </p>
                                 </div>
                               )}
@@ -521,7 +521,7 @@ function AddCardModal({
   const [front, setFront] = useState("");
   const [back, setBack] = useState("");
   const [advancedNotes, setAdvancedNotes] = useState("");
-  const [mnemotechnic, setMnemotechnic] = useState("");
+  const [mnemonics, setMnemonics] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -537,7 +537,7 @@ function AddCardModal({
         front,
         back,
         advancedNotes: advancedNotes || undefined,
-        mnemotechnic: mnemotechnic || undefined,
+        mnemonics: mnemonics || undefined,
       });
 
       onAdded();
@@ -619,13 +619,13 @@ function AddCardModal({
           </div>
 
           <div>
-            <label htmlFor="mnemotechnic" className="label">
+            <label htmlFor="mnemonics" className="label">
               🧠 Memory Aid (optional)
             </label>
             <textarea
-              id="mnemotechnic"
-              value={mnemotechnic}
-              onChange={(e) => setMnemotechnic(e.target.value)}
+              id="mnemonics"
+              value={mnemonics}
+              onChange={(e) => setMnemonics(e.target.value)}
               className="input h-20 resize-none"
               disabled={loading}
               placeholder="Mnemonic device, memory technique, or trick to remember this..."

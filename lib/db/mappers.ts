@@ -10,7 +10,7 @@ export function transformDbCardToApiCard(dbCard: DbCard): Card {
     front: dbCard.front,
     back: dbCard.back || '',
     advancedNotes: dbCard.advancedNotes || undefined,
-    mnemotechnic: dbCard.mnemotechnic || undefined,
+    mnemonics: dbCard.mnemonics || undefined,
     createdAt: dbCard.createdAt || new Date(),
     updatedAt: dbCard.updatedAt || new Date(),
   }

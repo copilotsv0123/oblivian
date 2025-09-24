@@ -17,7 +17,7 @@ interface Card {
   choices?: string
   explanation?: string
   advancedNotes?: string
-  mnemotechnic?: string
+  mnemonics?: string
 }
 
 interface StudyStats {
@@ -516,14 +516,14 @@ export default function StudyPage({ params }: { params: Promise<{ id: string }> 
                   </div>
                 )}
 
-                {currentCard.mnemotechnic && (
+                {currentCard.mnemonics && (
                   <div className="p-3 sm:p-4 bg-amber-50 rounded-lg border border-amber-200">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-amber-600 font-medium text-sm">🧠 Memory Aid</span>
                     </div>
                     <div className="prose prose-sm sm:prose-lg max-w-none text-gray-700">
                       <ReactMarkdown>
-                        {currentCard.mnemotechnic}
+                        {currentCard.mnemonics}
                       </ReactMarkdown>
                     </div>
                   </div>

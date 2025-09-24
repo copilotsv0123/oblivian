@@ -66,7 +66,7 @@ export const cards = pgTable('cards', {
   choices: text('choices'), // JSON string
   explanation: text('explanation'),
   advancedNotes: text('advanced_notes'),
-  mnemotechnic: text('mnemotechnic'), // Memory aid technique
+  mnemonics: text('mnemonics'), // Memory aid technique
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })

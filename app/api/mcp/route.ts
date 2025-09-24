@@ -83,7 +83,7 @@ const TOOLS = [
               front: { type: 'string' },
               back: { type: 'string' },
               advancedNotes: { type: 'string', description: 'Advanced notes with deeper insights' },
-              mnemotechnic: { type: 'string', description: 'Memory aid technique or mnemonic device' },
+              mnemonics: { type: 'string', description: 'Optional mnemonic device or memory aid technique to help remember this card' },
             },
             required: ['front', 'back', 'advancedNotes'],
           },
@@ -143,6 +143,7 @@ const TOOLS = [
         choices: { type: 'string', description: 'New choices for multiple choice cards' },
         explanation: { type: 'string', description: 'New explanation' },
         advancedNotes: { type: 'string', description: 'Advanced notes with deeper insights' },
+        mnemonics: { type: 'string', description: 'Optional mnemonic device or memory aid technique' },
       },
       required: ['cardId'],
     },
@@ -165,6 +166,7 @@ const TOOLS = [
               choices: { type: 'string', description: 'New choices for multiple choice cards' },
               explanation: { type: 'string', description: 'New explanation' },
               advancedNotes: { type: 'string', description: 'Advanced notes with deeper insights' },
+              mnemonics: { type: 'string', description: 'Optional mnemonic device or memory aid technique' },
             },
             required: ['cardId'],
           },
@@ -492,6 +494,7 @@ async function handleMCPRequest(request: MCPRequest, userId: string): Promise<MC
             if (args.choices !== undefined) cardUpdateData.choices = args.choices
             if (args.explanation !== undefined) cardUpdateData.explanation = args.explanation
             if (args.advancedNotes !== undefined) cardUpdateData.advancedNotes = args.advancedNotes
+            if (args.mnemonics !== undefined) cardUpdateData.mnemonics = args.mnemonics
 
             const updatedCard = await cardRepository.updateWithOwnershipCheck(args.cardId, userId, cardUpdateData)
             
