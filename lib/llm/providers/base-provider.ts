@@ -208,10 +208,11 @@ export abstract class BaseLLMProvider {
       return JSON.parse(cleanContent)
     } catch (error) {
       // Check if response was likely truncated
-      if (error.message.includes("Expected ',' or ']'") ||
-          error.message.includes("Expected '}' or ','") ||
-          error.message.includes("Unexpected end of JSON")) {
-        throw new Error(`Response appears to be truncated. Try reducing card count or increasing token limit. Original error: ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      if (errorMessage.includes("Expected ',' or ']'") ||
+          errorMessage.includes("Expected '}' or ','") ||
+          errorMessage.includes("Unexpected end of JSON")) {
+        throw new Error(`Response appears to be truncated. Try reducing card count or increasing token limit. Original error: ${errorMessage}`)
       }
 
       // If all else fails, try to extract JSON from anywhere in the content
@@ -221,15 +222,16 @@ export abstract class BaseLLMProvider {
         try {
           return JSON.parse(match[1])
         } catch (secondError) {
-          if (secondError.message.includes("Expected ',' or ']'") ||
-              secondError.message.includes("Expected '}' or ','") ||
-              secondError.message.includes("Unexpected end of JSON")) {
+          const secondErrorMessage = secondError instanceof Error ? secondError.message : 'Unknown error'
+          if (secondErrorMessage.includes("Expected ',' or ']'") ||
+              secondErrorMessage.includes("Expected '}' or ','") ||
+              secondErrorMessage.includes("Unexpected end of JSON")) {
             throw new Error(`Response appears to be truncated. Try reducing card count or increasing token limit.`)
           }
-          throw new Error(`Failed to parse JSON: ${secondError.message}`)
+          throw new Error(`Failed to parse JSON: ${secondErrorMessage}`)
         }
       }
-      throw new Error(`Failed to parse JSON: ${error.message}`)
+      throw new Error(`Failed to parse JSON: ${errorMessage}`)
     }
   }
 
