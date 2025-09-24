@@ -40,6 +40,11 @@ Card Types Available: ${cardTypesDescription}
 Difficulty Level: ${request.difficulty}
 Guidelines: ${difficultyGuidelines[request.difficulty]}
 
+Language Expectations:
+- Detect and respect the language used in the user's instructions
+- Produce the entire output in that language
+- Mirror the tone and formality used in the user's prompt
+
 Output Requirements:
 - Return a valid JSON array of card objects
 - Each card must have the exact structure specified
@@ -56,8 +61,6 @@ Output Requirements:
     : ''
 
   const user = `Generate ${request.count} educational flashcards about "${request.topic}".
-
-Language: ${request.language}
 Card types to create: ${request.cardTypes.join(', ')}
 Difficulty: ${request.difficulty}${contextInfo}${existingCardsContext}
 
@@ -79,6 +82,19 @@ Guidelines:
 4. Mnemonics: Only include when genuinely helpful for memory retention
 5. Avoid ambiguous phrasing or trick questions
 6. Focus on conceptual understanding over rote memorization
+
+Example output snippet (mirror the language of the user's instructions and adapt it to the requested topic):
+[
+  {
+    "type": "basic",
+    "front": "Explain the core principle behind concept A.",
+    "back": "Provide a precise yet concise explanation that answers the question directly.",
+    "advancedNotes": "Add one or two sentences that extend the learner's understanding with meaningful context.",
+    "mnemonics": "If helpful, include a memorable hook that makes the concept easier to recall."
+  }
+]
+
+Do not copy the example. Create original, topic-specific content entirely in the user's language.
 
 Generate the cards now:`
 
@@ -108,7 +124,12 @@ Create a balanced deck with:
 - 40% foundational concepts (basic understanding)
 - 30% application and examples (practical usage)
 - 20% connections and relationships (conceptual linking)
-- 10% advanced insights (deeper understanding)`
+- 10% advanced insights (deeper understanding)
+
+Language Expectations:
+- Always respond entirely in the same language used by the user
+- Match the tone, register, and language style used in the user's instructions
+- Do not switch languages unless explicitly instructed by the user`
 
   const audienceInfo = request.targetAudience
     ? `\nTarget audience: ${request.targetAudience}`
@@ -122,8 +143,7 @@ Create a balanced deck with:
 
 Description: ${request.description || 'A comprehensive study deck'}
 Number of cards: ${request.cardCount}
-Difficulty: ${request.difficulty}
-Language: ${request.language}${audienceInfo}${tagsInfo}
+Difficulty: ${request.difficulty}${audienceInfo}${tagsInfo}
 
 Guidelines: ${difficultyGuidelines[request.difficulty]}
 
@@ -154,6 +174,26 @@ Ensure the deck:
 4. Provides memorable mnemonics where appropriate
 5. Covers the topic thoroughly but concisely
 6. Maintains educational value throughout
+
+Example deck output (mirror the language of the user's instructions and adapt the content to the requested topic):
+{
+  "deck": {
+    "title": "Concise title that captures the learner's goal",
+    "description": "Brief explanation of what the learner will understand after studying.",
+    "tags": ["core concept", "application", "connections"]
+  },
+  "cards": [
+    {
+      "type": "basic",
+      "front": "Pose a focused question that targets a single idea.",
+      "back": "Answer the question directly with the key takeaway.",
+      "advancedNotes": "Offer one or two sentences that deepen the learner's understanding.",
+      "mnemonics": "Add a short, memorable aid only if it truly helps retention."
+    }
+  ]
+}
+
+Use the example only as a structural reference. Produce original ideas written completely in the user's language.
 
 Generate the complete deck now:`
 
@@ -203,13 +243,17 @@ Your task is to create engaging flashcards that:
 - Inspire curiosity about the world
 - Use the power of temporal anchoring for better memory retention
 
-Focus on accuracy, educational value, and interesting connections that learners wouldn't typically encounter.`
+Focus on accuracy, educational value, and interesting connections that learners wouldn't typically encounter.
+
+Language Expectations:
+- Keep the entire response in the same language the user employed
+- Match the language, tone, and register used in the user's request
+- Only change languages if the user explicitly directs you to do so`
 
   const user = `Create educational flashcards for today's learning session.
 
 ${eventContext}
 
-Language: ${request.language}
 Difficulty: ${request.difficulty}
 
 Requirements:
@@ -221,6 +265,19 @@ Requirements:
 - Provide rich context in advanced notes
 
 Return the same JSON array structure as standard card generation.
+
+Example event-based card (mirror the language of the user's instructions and tailor it to the chosen event or date):
+[
+  {
+    "type": "basic",
+    "front": "Highlight a notable event from this date and frame it as a question.",
+    "back": "Deliver the key facts that answer the question accurately and succinctly.",
+    "advancedNotes": "Add context that links the event to broader historical or scientific themes.",
+    "mnemonics": "Offer a brief hook that helps the learner remember why this event matters."
+  }
+]
+
+The example is illustrative only—produce original cards entirely in the user's language.
 
 Generate the event-based cards now:`
 
@@ -247,7 +304,12 @@ Guidelines:
 - Add value without overwhelming the learner
 - Ensure enhancements are accurate and relevant
 - Make content more memorable and engaging
-- Maintain appropriate difficulty level`
+- Maintain appropriate difficulty level
+
+Language Expectations:
+- Respect the language used in the provided cards
+- Write all enhancements in that language, mirroring the original tone
+- Avoid switching languages unless explicitly requested by the user`
 
   const cardsContext = request.existingCards.map((card, index) =>
     `Card ${index + 1}:
@@ -271,6 +333,19 @@ ${request.enhancementType === 'mnemonics' ? '- Create memorable acronyms, rhymes
 ${request.enhancementType === 'examples' ? '- Add concrete, relatable examples\n- Include real-world applications\n- Use analogies that clarify difficult concepts' : ''}
 ${request.enhancementType === 'context' ? '- Provide historical or cultural background\n- Show connections to other topics\n- Explain why the concept matters' : ''}
 ${request.enhancementType === 'advanced_notes' ? '- Add deeper technical insights\n- Include advanced applications\n- Connect to related advanced concepts' : ''}
+
+Example enhanced card (ensure the entire response stays in the same language as the user's request):
+[
+  {
+    "type": "basic",
+    "front": "Original question text remains unchanged.",
+    "back": "Original answer text remains unchanged.",
+    "advancedNotes": "Expand with one or two sentences that deliver richer insight without overwhelming the learner.",
+    "mnemonics": "Provide a vivid, memorable device that suits the concept when the enhancement type calls for it."
+  }
+]
+
+Do not copy the example—enhance the supplied cards with original language-appropriate content.
 
 Generate the enhanced cards now:`
 
