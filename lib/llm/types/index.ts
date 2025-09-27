@@ -72,7 +72,7 @@ export interface CardGenerationResponse {
 }
 
 export interface DeckGenerationResponse {
-  deck: {
+  deck?: {
     title: string
     description: string
     tags: string[]
@@ -176,5 +176,12 @@ export class InvalidPromptError extends LLMError {
   constructor(message: string, public prompt?: string) {
     super(message, 'INVALID_PROMPT')
     this.name = 'InvalidPromptError'
+  }
+}
+
+export class TimeoutError extends LLMError {
+  constructor(message: string, public timeoutMs?: number) {
+    super(message, 'TIMEOUT')
+    this.name = 'TimeoutError'
   }
 }

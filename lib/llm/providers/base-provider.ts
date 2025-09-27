@@ -254,6 +254,10 @@ export abstract class BaseLLMProvider {
       throw new Error(`Invalid request to ${this.info.name}: ${error.message}`)
     }
 
+    if (error.message?.includes('timeout') || error.message?.includes('timed out')) {
+      throw new Error(`Request timed out for ${this.info.name}. Try reducing card count or try again later.`)
+    }
+
     throw new Error(`${this.info.name} provider error: ${error.message || 'Unknown error'}`)
   }
 }

@@ -41,7 +41,7 @@ export class OpenAIProvider extends BaseLLMProvider {
 
     this.client = new OpenAI({
       apiKey,
-      timeout: 30000, // 30 second timeout
+      timeout: 60000, // 60 second timeout for better deck generation
       maxRetries: 2
     })
   }
@@ -428,5 +428,38 @@ export class OpenAIProvider extends BaseLLMProvider {
     }
 
     return modelCosts[model] || this.info.costPer1KTokens
+  }
+
+  /**
+   * Format error message for consistent error handling
+   */
+  private getErrorMessage(error: any): string {
+    if (!error) {
+      return 'Unknown error occurred'
+    }
+
+    const message = error.message || 'Unknown error occurred'
+
+    // Handle timeout errors specifically
+    if (message.includes('timeout') || message.includes('timed out')) {
+      return 'Request timed out. Try reducing the card count or try again later.'
+    }
+
+    // Handle rate limiting
+    if (message.includes('rate limit')) {
+      return 'Rate limit exceeded. Please try again later.'
+    }
+
+    // Handle quota issues
+    if (message.includes('quota') || message.includes('billing')) {
+      return 'API quota exceeded. Please check your billing.'
+    }
+
+    // Handle invalid requests
+    if (message.includes('invalid')) {
+      return `Invalid request: ${message}`
+    }
+
+    return message
   }
 }

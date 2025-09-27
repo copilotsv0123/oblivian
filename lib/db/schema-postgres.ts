@@ -203,3 +203,42 @@ export type UserStats = typeof userStats.$inferSelect
 export type NewUserStats = typeof userStats.$inferInsert
 export type UserDeckStar = typeof userDeckStars.$inferSelect
 export type NewUserDeckStar = typeof userDeckStars.$inferInsert
+
+// LLM usage tracking tables
+export const llmUsageRecords = pgTable('llm_usage_records', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(), // 'cards' | 'deck' | 'event' | 'enhance'
+  inputData: text('input_data').notNull(), // JSON string of request data
+  outputData: text('output_data'), // JSON string of response data
+  modelUsed: text('model_used').notNull(),
+  tokensInput: integer('tokens_input').notNull().default(0),
+  tokensOutput: integer('tokens_output').notNull().default(0),
+  tokensTotal: integer('tokens_total').notNull().default(0),
+  costCents: integer('cost_cents').notNull().default(0),
+  status: text('status').notNull(), // 'pending' | 'completed' | 'failed'
+  errorMessage: text('error_message'),
+  duration: integer('duration').notNull().default(0), // milliseconds
+  provider: text('provider').notNull(),
+  requestId: text('request_id').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+})
+
+export const llmUsageStats = pgTable('llm_usage_stats', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  period: text('period').notNull(), // YYYY-MM format
+  totalRequests: integer('total_requests').notNull().default(0),
+  totalTokens: integer('total_tokens').notNull().default(0),
+  totalCostCents: integer('total_cost_cents').notNull().default(0),
+  requestsByType: text('requests_by_type').notNull().default('{}'), // JSON object
+  averageCostPerRequest: real('average_cost_per_request').notNull().default(0),
+  successRate: real('success_rate').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
+export type LlmUsageRecord = typeof llmUsageRecords.$inferSelect
+export type NewLlmUsageRecord = typeof llmUsageRecords.$inferInsert
+export type LlmUsageStats = typeof llmUsageStats.$inferSelect
+export type NewLlmUsageStats = typeof llmUsageStats.$inferInsert

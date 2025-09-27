@@ -5,6 +5,7 @@
 import { getConfig } from "@/lib/config/env";
 import { OpenAIProvider } from "../providers/openai";
 import { BaseLLMProvider } from "../providers/base-provider";
+import { LlmUsageRepository } from "@/lib/repositories/llm-usage-repository";
 import type {
   CardGenerationRequest,
   CardGenerationResponse,
@@ -13,6 +14,7 @@ import type {
   EventGenerationRequest,
   EnhancementRequest,
   ModelConfig,
+  TokenUsage,
 } from "../types";
 
 import { LLMError, RateLimitError, QuotaExceededError } from "../types";
@@ -20,9 +22,11 @@ import { LLMError, RateLimitError, QuotaExceededError } from "../types";
 export class LLMService {
   private providers: Map<string, BaseLLMProvider> = new Map();
   private defaultProvider: string = "openai";
+  private usageRepository: LlmUsageRepository;
 
   constructor() {
     this.initializeProviders();
+    this.usageRepository = new LlmUsageRepository();
   }
 
   private initializeProviders(): void {
@@ -51,6 +55,7 @@ export class LLMService {
   async generateCards(
     request: CardGenerationRequest,
     config?: Partial<ModelConfig>,
+    userId?: string,
   ): Promise<CardGenerationResponse> {
     // Basic request validation
     this.validateRequest(request);
@@ -64,7 +69,7 @@ export class LLMService {
 
       // Track usage if successful
       if (response.success) {
-        await this.trackUsage(request, response);
+        await this.trackUsage(request, response, userId);
       }
 
       return response;
@@ -80,6 +85,7 @@ export class LLMService {
   async generateDeck(
     request: DeckGenerationRequest,
     config?: Partial<ModelConfig>,
+    userId?: string,
   ): Promise<DeckGenerationResponse> {
     this.validateRequest(request);
 
@@ -87,7 +93,14 @@ export class LLMService {
     const finalConfig = this.selectModel(config);
 
     try {
-      return await provider.generateDeck(request, finalConfig);
+      const response = await provider.generateDeck(request, finalConfig);
+
+      // Track usage if successful
+      if (response.success) {
+        await this.trackUsage(request, response, userId);
+      }
+
+      return response;
     } catch (error) {
       console.error("LLM Service - Deck generation failed:", error);
       throw this.wrapError(error);
@@ -100,12 +113,20 @@ export class LLMService {
   async generateEventContent(
     request: EventGenerationRequest,
     config?: Partial<ModelConfig>,
+    userId?: string,
   ): Promise<CardGenerationResponse> {
     const provider = this.selectProvider(config?.provider);
     const finalConfig = this.selectModel(config);
 
     try {
-      return await provider.generateEventContent(request, finalConfig);
+      const response = await provider.generateEventContent(request, finalConfig);
+
+      // Track usage if successful
+      if (response.success) {
+        await this.trackUsage(request, response, userId);
+      }
+
+      return response;
     } catch (error) {
       console.error("LLM Service - Event generation failed:", error);
       throw this.wrapError(error);
@@ -118,12 +139,20 @@ export class LLMService {
   async enhanceCards(
     request: EnhancementRequest,
     config?: Partial<ModelConfig>,
+    userId?: string,
   ): Promise<CardGenerationResponse> {
     const provider = this.selectProvider(config?.provider);
     const finalConfig = this.selectModel(config);
 
     try {
-      return await provider.enhanceCards(request, finalConfig);
+      const response = await provider.enhanceCards(request, finalConfig);
+
+      // Track usage if successful
+      if (response.success) {
+        await this.trackUsage(request, response, userId);
+      }
+
+      return response;
     } catch (error) {
       console.error("LLM Service - Enhancement failed:", error);
       throw this.wrapError(error);
@@ -160,6 +189,32 @@ export class LLMService {
     }
 
     return results;
+  }
+
+  /**
+   * Get usage statistics for a user
+   */
+  async getUserUsageStats(userId: string): Promise<{
+    currentMonth: any
+    previousMonth: any
+    trend: any
+  }> {
+    return await this.usageRepository.getMonthlyUsageSummary(userId);
+  }
+
+  /**
+   * Get usage records for a user
+   */
+  async getUserUsageRecords(
+    userId: string,
+    options?: {
+      limit?: number
+      offset?: number
+      status?: 'pending' | 'completed' | 'failed'
+      type?: 'cards' | 'deck' | 'event' | 'enhance'
+    }
+  ) {
+    return await this.usageRepository.findUserUsageRecords(userId, options);
   }
 
   // Private helper methods
@@ -247,14 +302,61 @@ export class LLMService {
   private async trackUsage(
     request: any,
     response: any,
+    userId?: string,
   ): Promise<void> {
-    // TODO: Implement usage tracking to database
-    // This will be implemented when we add the database schema
-    console.log("Usage tracking:", {
-      tokensUsed: response.metadata?.tokensUsed || 0,
-      costCents: response.metadata?.costCents || 0,
-      requestType: "llm_generation",
-    });
+    try {
+      // Skip tracking if no user ID provided
+      if (!userId) {
+        console.warn("Usage tracking skipped: no user ID provided");
+        return;
+      }
+
+      // Determine request type
+      let type: 'cards' | 'deck' | 'event' | 'enhance' = 'cards';
+      if ('cardCount' in request) type = 'deck';
+      if ('eventType' in request) type = 'event';
+      if ('enhancementType' in request) type = 'enhance';
+
+      // Extract token usage
+      const tokensUsed: TokenUsage = {
+        input: response.metadata?.tokensUsed || 0,
+        output: 0, // We'll extract this if available
+        total: response.metadata?.tokensUsed || 0
+      };
+
+      // If response has detailed token info, use it
+      if (response.metadata?.tokensInput !== undefined) {
+        tokensUsed.input = response.metadata.tokensInput;
+        tokensUsed.output = response.metadata.tokensOutput || 0;
+        tokensUsed.total = response.metadata.tokensTotal || tokensUsed.input + tokensUsed.output;
+      }
+
+      await this.usageRepository.createUsageRecord({
+        userId,
+        type,
+        inputData: request,
+        outputData: response,
+        modelUsed: response.metadata?.model || 'unknown',
+        tokensUsed,
+        costCents: response.metadata?.costCents || 0,
+        status: response.success ? 'completed' : 'failed',
+        duration: response.metadata?.duration || 0,
+        provider: response.metadata?.provider || 'unknown',
+        requestId: response.metadata?.requestId || `req_${Date.now()}`,
+        errorMessage: response.error,
+      });
+
+      console.log("Usage tracked successfully:", {
+        userId,
+        type,
+        tokensUsed: tokensUsed.total,
+        costCents: response.metadata?.costCents || 0,
+        status: response.success ? 'completed' : 'failed',
+      });
+    } catch (error) {
+      console.error("Failed to track usage:", error);
+      // Don't throw error to avoid breaking the main flow
+    }
   }
 
   private wrapError(error: any): LLMError {
@@ -274,6 +376,16 @@ export class LLMService {
         "API quota exceeded. Please check your billing.",
         0,
         0,
+      );
+    }
+
+    if (error.message?.includes("timeout") || error.message?.includes("timed out")) {
+      return new LLMError(
+        "Request timed out. Try reducing the card count or try again later.",
+        "TIMEOUT",
+        undefined,
+        undefined,
+        error,
       );
     }
 
