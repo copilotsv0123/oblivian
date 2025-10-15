@@ -31,7 +31,7 @@
 - **Claude Desktop MCP** - Generate high-quality flashcards using Claude's AI directly from your desktop
 - **API Token Authentication** - Secure token-based access for AI features
 - **Batch Card Generation** - Create up to 100 cards at once with AI assistance
-- **Smart Recommendations** - AI-powered similar deck suggestions using OpenAI embeddings stored in pgvector
+- **Smart Recommendations** - AI-powered similar deck suggestions using Gemini embeddings stored in pgvector
 - **Natural Language Commands** - Create decks and cards with simple prompts
 
 ### 🎨 Modern Design
@@ -70,10 +70,11 @@ Edit `.env.local` with your configuration:
 ```env
 DATABASE_URL="postgresql://..."  # Your Neon PostgreSQL connection string
 JWT_SECRET="your-secret-key"     # Generate a secure random string
-# Optional: configure OpenAI embeddings for deck similarity
-OPENAI_API_KEY="your-openai-api-key"
-OPENAI_EMBEDDING_MODEL="text-embedding-3-small"
-EMBEDDING_PROVIDER="openai"
+# Optional: configure Gemini for AI-assisted workflows
+GEMINI_API_KEY="your-gemini-api-key"
+GEMINI_MODEL="gemini-1.5-flash"
+GEMINI_EMBEDDING_MODEL="text-embedding-004"
+EMBEDDING_PROVIDER="gemini"
 ```
 
 4. **Initialize the database**
