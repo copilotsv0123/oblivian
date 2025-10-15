@@ -390,6 +390,7 @@ export class CardRepository extends BaseRepository {
           choices: updateData.choices ? JSON.stringify(updateData.choices) : undefined,
           explanation: updateData.explanation,
           advancedNotes: updateData.advancedNotes,
+          mnemonics: updateData.mnemonics,
           updatedAt: new Date(),
         })
         .where(eq(cards.id, cardId))

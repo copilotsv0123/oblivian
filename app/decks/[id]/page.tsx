@@ -16,10 +16,23 @@ import {
   XCircle,
 } from "lucide-react";
 import Tooltip from "@/components/Tooltip";
-import { deckRepo, cardRepo, type DeckResponse } from "@/lib/client/repositories";
-import { Card } from '@/lib/types/cards';
+import {
+  deckRepo,
+  cardRepo,
+  type DeckResponse,
+} from "@/lib/client/repositories";
+import type { Card } from "@/lib/types/cards";
 
 type Deck = DeckResponse;
+type DeckLevel = "simple" | "mid" | "expert";
+
+const DECK_LEVEL_OPTIONS: DeckLevel[] = ["simple", "mid", "expert"];
+
+function normalizeDeckLevel(value: string): DeckLevel {
+  return DECK_LEVEL_OPTIONS.includes(value as DeckLevel)
+    ? (value as DeckLevel)
+    : "simple";
+}
 
 interface DeckStats {
   lastStudyDate: string | null;
@@ -40,7 +53,12 @@ export default function DeckPage({
   const [deck, setDeck] = useState<Deck | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddCard, setShowAddCard] = useState(false);
+  const [cardModal, setCardModal] = useState<
+    { mode: "create" | "edit"; card?: Card }
+  | null>(null);
+  const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
+  const [deckModalOpen, setDeckModalOpen] = useState(false);
+  const [deckDeleting, setDeckDeleting] = useState(false);
   const [similarDecks, setSimilarDecks] = useState<any[]>([]);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [showCards, setShowCards] = useState(false);
@@ -109,6 +127,43 @@ export default function DeckPage({
       console.error("Error fetching similar decks:", error);
     }
   }, [resolvedParams.id]);
+
+  const handleDeleteCard = useCallback(
+    async (cardId: string) => {
+      if (!window.confirm("Delete this card? This action cannot be undone.")) {
+        return;
+      }
+
+      setDeleteLoadingId(cardId);
+      try {
+        await cardRepo.deleteCard(cardId);
+        await fetchDeck();
+      } catch (error) {
+        console.error("Error deleting card:", error);
+      } finally {
+        setDeleteLoadingId(null);
+      }
+    },
+    [fetchDeck],
+  );
+
+  const handleDeckDelete = useCallback(async () => {
+    if (!deck) return;
+
+    if (!window.confirm("Delete this deck? All cards will be removed.")) {
+      return;
+    }
+
+    setDeckDeleting(true);
+    try {
+      await deckRepo.deleteDeck(deck.id);
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Error deleting deck:", error);
+    } finally {
+      setDeckDeleting(false);
+    }
+  }, [deck, router]);
 
   useEffect(() => {
     fetchDeck();
@@ -287,6 +342,21 @@ export default function DeckPage({
                 )}
               </div>
             </div>
+            <div className="flex flex-col items-end gap-2 ml-4">
+              <button
+                onClick={() => setDeckModalOpen(true)}
+                className="px-3 py-2 text-sm rounded-md border border-gray-200 text-primary hover:bg-gray-50 transition-colors"
+              >
+                Edit Deck
+              </button>
+              <button
+                onClick={handleDeckDelete}
+                className="px-3 py-2 text-sm rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
+                disabled={deckDeleting}
+              >
+                {deckDeleting ? "Deleting..." : "Delete Deck"}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -309,7 +379,7 @@ export default function DeckPage({
               Add cards to start studying this deck
             </p>
             <button
-              onClick={() => setShowAddCard(true)}
+              onClick={() => setCardModal({ mode: "create" })}
               className="btn-secondary"
             >
               Add Your First Card
@@ -317,19 +387,27 @@ export default function DeckPage({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold text-primary">
-                Cards ({cards.length})
-              </h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-primary">
+                  Cards ({cards.length})
+                </h2>
+                <button
+                  onClick={() => setShowCards(!showCards)}
+                  className="text-gray-600 hover:text-primary transition-colors"
+                >
+                  {showCards ? (
+                    <ChevronUp className="w-5 h-5" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
               <button
-                onClick={() => setShowCards(!showCards)}
-                className="text-gray-600 hover:text-primary transition-colors"
+                onClick={() => setCardModal({ mode: "create" })}
+                className="btn-secondary"
               >
-                {showCards ? (
-                  <ChevronUp className="w-5 h-5" />
-                ) : (
-                  <ChevronDown className="w-5 h-5" />
-                )}
+                Add Card
               </button>
             </div>
             {showCards ? (
@@ -355,7 +433,7 @@ export default function DeckPage({
                         }
                       }}
                     >
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start gap-3">
                         <div className="flex-1">
                           <div>
                             <p className="text-primary font-medium mt-1">
@@ -403,32 +481,57 @@ export default function DeckPage({
                               )}
                           </div>
                         </div>
-
-                        {/* Performance indicator icon */}
-                        {perf && perf.recentReviews.length > 0 && (
-                          <div className="absolute bottom-3 right-3">
-                            {perf.difficulty === "easy" ? (
-                              <Tooltip
-                                content={`Easy - ${Math.round(perf.successRate * 100)}% success rate`}
-                              >
-                                <CheckCircle className="w-5 h-5 text-green-500" />
-                              </Tooltip>
-                            ) : perf.difficulty === "medium" ? (
-                              <Tooltip
-                                content={`Medium - ${Math.round(perf.successRate * 100)}% success rate`}
-                              >
-                                <AlertCircle className="w-5 h-5 text-yellow-500" />
-                              </Tooltip>
-                            ) : perf.difficulty === "hard" ? (
-                              <Tooltip
-                                content={`Hard - ${Math.round(perf.successRate * 100)}% success rate`}
-                              >
-                                <XCircle className="w-5 h-5 text-red-500" />
-                              </Tooltip>
-                            ) : null}
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setCardModal({ mode: "edit", card });
+                              }}
+                              className="rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:border-primary hover:text-primary"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void handleDeleteCard(card.id);
+                              }}
+                              className="rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:border-red-500 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                              disabled={deleteLoadingId === card.id}
+                            >
+                              {deleteLoadingId === card.id ? "Deleting..." : "Delete"}
+                            </button>
                           </div>
-                        )}
+                        </div>
                       </div>
+
+                      {/* Performance indicator icon */}
+                      {perf && perf.recentReviews.length > 0 && (
+                        <div className="absolute bottom-3 right-3">
+                          {perf.difficulty === "easy" ? (
+                            <Tooltip
+                              content={`Easy - ${Math.round(perf.successRate * 100)}% success rate`}
+                            >
+                              <CheckCircle className="w-5 h-5 text-green-500" />
+                            </Tooltip>
+                          ) : perf.difficulty === "medium" ? (
+                            <Tooltip
+                              content={`Medium - ${Math.round(perf.successRate * 100)}% success rate`}
+                            >
+                              <AlertCircle className="w-5 h-5 text-yellow-500" />
+                            </Tooltip>
+                          ) : perf.difficulty === "hard" ? (
+                            <Tooltip
+                              content={`Hard - ${Math.round(perf.successRate * 100)}% success rate`}
+                            >
+                              <XCircle className="w-5 h-5 text-red-500" />
+                            </Tooltip>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -492,14 +595,25 @@ export default function DeckPage({
             </div>
           </div>
         )}
-
-        {showAddCard && (
-          <AddCardModal
+        {deck && deckModalOpen && (
+          <DeckFormModal
+            deck={deck}
+            onClose={() => setDeckModalOpen(false)}
+            onSuccess={async () => {
+              await fetchDeck();
+              setDeckModalOpen(false);
+            }}
+          />
+        )}
+        {cardModal && (
+          <CardFormModal
             deckId={resolvedParams.id}
-            onClose={() => setShowAddCard(false)}
-            onAdded={() => {
-              setShowAddCard(false);
-              fetchDeck();
+            mode={cardModal.mode}
+            card={cardModal.card}
+            onClose={() => setCardModal(null)}
+            onSuccess={async () => {
+              await fetchDeck();
+              setCardModal(null);
             }}
           />
         )}
@@ -508,39 +622,268 @@ export default function DeckPage({
   );
 }
 
-function AddCardModal({
-  deckId,
-  onClose,
-  onAdded,
-}: {
-  deckId: string;
+interface DeckFormModalProps {
+  deck: Deck;
   onClose: () => void;
-  onAdded: () => void;
-}) {
-  const [type, setType] = useState<"basic" | "cloze">("basic");
-  const [front, setFront] = useState("");
-  const [back, setBack] = useState("");
-  const [advancedNotes, setAdvancedNotes] = useState("");
-  const [mnemonics, setMnemonics] = useState("");
+  onSuccess: () => Promise<void> | void;
+}
+
+function DeckFormModal({ deck, onClose, onSuccess }: DeckFormModalProps) {
+  const [title, setTitle] = useState(deck.title);
+  const [description, setDescription] = useState(deck.description ?? "");
+  const [level, setLevel] = useState<DeckLevel>(normalizeDeckLevel(deck.level));
+  const [language, setLanguage] = useState(deck.language ?? "en");
+  const [isPublic, setIsPublic] = useState(deck.isPublic);
+  const [tagsInput, setTagsInput] = useState(deck.tags?.join(", ") ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    setTitle(deck.title);
+    setDescription(deck.description ?? "");
+    setLevel(normalizeDeckLevel(deck.level));
+    setLanguage(deck.language ?? "en");
+    setIsPublic(deck.isPublic);
+    setTagsInput(deck.tags?.join(", ") ?? "");
+  }, [deck]);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      await cardRepo.create({
-        deckId,
-        type,
-        front,
-        back,
-        advancedNotes: advancedNotes || undefined,
-        mnemonics: mnemonics || undefined,
+      const normalizedTitle = title.trim();
+      if (!normalizedTitle) {
+        throw new Error("Title is required");
+      }
+
+      const normalizedDescription = description.trim();
+      const normalizedLanguage = language.trim() || deck.language || "en";
+      const tags = tagsInput
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
+
+      await deckRepo.update(deck.id, {
+        title: normalizedTitle,
+        description: normalizedDescription || null,
+        level,
+        language: normalizedLanguage,
+        isPublic,
+        tags,
       });
 
-      onAdded();
+      await onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="card max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <h3 className="text-2xl font-bold text-primary mb-4">Chỉnh sửa bộ thẻ</h3>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="deck-title" className="label">
+              Tiêu đề
+            </label>
+            <input
+              id="deck-title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="input"
+              placeholder="Tên bộ thẻ"
+              required
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="deck-description" className="label">
+              Mô tả
+            </label>
+            <textarea
+              id="deck-description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              className="input h-28 resize-none"
+              placeholder="Mô tả ngắn gọn về bộ thẻ"
+              disabled={loading}
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label htmlFor="deck-level" className="label">
+                Độ khó
+              </label>
+              <select
+                id="deck-level"
+                value={level}
+                onChange={(event) => setLevel(event.target.value as DeckLevel)}
+                className="input"
+                disabled={loading}
+              >
+                {DECK_LEVEL_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="deck-language" className="label">
+                Ngôn ngữ
+              </label>
+              <input
+                id="deck-language"
+                value={language}
+                onChange={(event) => setLanguage(event.target.value)}
+                className="input"
+                placeholder="Ví dụ: en, vi"
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="deck-tags" className="label">
+              Thẻ (ngăn cách bằng dấu phẩy)
+            </label>
+            <input
+              id="deck-tags"
+              value={tagsInput}
+              onChange={(event) => setTagsInput(event.target.value)}
+              className="input"
+              placeholder="ví dụ: biology, exam"
+              disabled={loading}
+            />
+          </div>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={isPublic}
+              onChange={(event) => setIsPublic(event.target.checked)}
+              disabled={loading}
+            />
+            <span>Công khai bộ thẻ này</span>
+          </label>
+
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              className="btn-primary flex-1"
+              disabled={loading}
+            >
+              {loading ? "Đang lưu..." : "Lưu thay đổi"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-outline flex-1"
+              disabled={loading}
+            >
+              Hủy
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+interface CardFormModalProps {
+  deckId: string;
+  mode: "create" | "edit";
+  card?: Card;
+  onClose: () => void;
+  onSuccess: () => Promise<void> | void;
+}
+
+function resolveBackValue(card?: Card): string {
+  if (!card) return "";
+  if ("back" in card && typeof card.back === "string") {
+    return card.back;
+  }
+  return "";
+}
+
+function CardFormModal({
+  deckId,
+  mode,
+  card,
+  onClose,
+  onSuccess,
+}: CardFormModalProps) {
+  const isEdit = mode === "edit";
+  const [type, setType] = useState<"basic" | "cloze">(
+    card?.type === "cloze" ? "cloze" : "basic",
+  );
+  const [front, setFront] = useState(card?.front ?? "");
+  const [back, setBack] = useState(resolveBackValue(card));
+  const [advancedNotes, setAdvancedNotes] = useState(
+    card?.advancedNotes ?? "",
+  );
+  const [mnemonics, setMnemonics] = useState(card?.mnemonics ?? "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (isEdit && card) {
+  setType(card.type === "cloze" ? "cloze" : "basic");
+      setFront(card.front);
+  setBack(resolveBackValue(card));
+      setAdvancedNotes(card.advancedNotes ?? "");
+      setMnemonics(card.mnemonics ?? "");
+      return;
+    }
+
+    if (!isEdit) {
+  setType("basic");
+      setFront("");
+      setBack("");
+      setAdvancedNotes("");
+      setMnemonics("");
+    }
+  }, [isEdit, card]);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      if (isEdit && card) {
+        await cardRepo.update(card.id, {
+          front,
+          back,
+          advancedNotes: advancedNotes || undefined,
+          mnemonics: mnemonics || undefined,
+        });
+      } else {
+        await cardRepo.create({
+          deckId,
+          type,
+          front,
+          back,
+          advancedNotes: advancedNotes || undefined,
+          mnemonics: mnemonics || undefined,
+        });
+      }
+
+      await onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -548,10 +891,19 @@ function AddCardModal({
     }
   };
 
+  const title = isEdit ? "Edit Card" : "Add New Card";
+  const primaryLabel = isEdit
+    ? loading
+      ? "Saving..."
+      : "Save Changes"
+    : loading
+      ? "Adding..."
+      : "Add Card";
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
       <div className="card max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <h3 className="text-2xl font-bold text-primary mb-4">Add New Card</h3>
+        <h3 className="text-2xl font-bold text-primary mb-4">{title}</h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -561,9 +913,10 @@ function AddCardModal({
             <select
               id="type"
               value={type}
-              onChange={(e) => setType(e.target.value as any)}
+              onChange={(event) =>
+                setType(event.target.value as "basic" | "cloze")}
               className="input"
-              disabled={loading}
+              disabled={loading || isEdit}
             >
               <option value="basic">Basic (Front/Back)</option>
               <option value="cloze">Cloze (Fill in the blank)</option>
@@ -577,7 +930,7 @@ function AddCardModal({
             <textarea
               id="front"
               value={front}
-              onChange={(e) => setFront(e.target.value)}
+              onChange={(event) => setFront(event.target.value)}
               className="input h-24 resize-none"
               required
               disabled={loading}
@@ -596,7 +949,7 @@ function AddCardModal({
             <textarea
               id="back"
               value={back}
-              onChange={(e) => setBack(e.target.value)}
+              onChange={(event) => setBack(event.target.value)}
               className="input h-24 resize-none"
               required
               disabled={loading}
@@ -611,7 +964,7 @@ function AddCardModal({
             <textarea
               id="advancedNotes"
               value={advancedNotes}
-              onChange={(e) => setAdvancedNotes(e.target.value)}
+              onChange={(event) => setAdvancedNotes(event.target.value)}
               className="input h-24 resize-none"
               disabled={loading}
               placeholder="Additional insights, context, or deeper explanations..."
@@ -625,7 +978,7 @@ function AddCardModal({
             <textarea
               id="mnemonics"
               value={mnemonics}
-              onChange={(e) => setMnemonics(e.target.value)}
+              onChange={(event) => setMnemonics(event.target.value)}
               className="input h-20 resize-none"
               disabled={loading}
               placeholder="Mnemonic device, memory technique, or trick to remember this..."
@@ -644,7 +997,7 @@ function AddCardModal({
               className="btn-primary flex-1"
               disabled={loading}
             >
-              {loading ? "Adding..." : "Add Card"}
+              {primaryLabel}
             </button>
             <button
               type="button"

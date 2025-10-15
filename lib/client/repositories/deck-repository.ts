@@ -51,6 +51,15 @@ export interface CreateDeckData {
   isPublic?: boolean
 }
 
+export interface UpdateDeckData {
+  title?: string
+  description?: string | null
+  level?: string
+  language?: string
+  isPublic?: boolean
+  tags?: string[]
+}
+
 export class DeckRepository extends BaseRepository {
   constructor() {
     super(apiClient)
@@ -66,6 +75,14 @@ export class DeckRepository extends BaseRepository {
 
   create(data: CreateDeckData) {
     return this.post<{ deck: DeckResponse }>('/api/decks', data)
+  }
+
+  update(deckId: string, data: UpdateDeckData) {
+    return this.put<{ deck: DeckResponse }>(`/api/decks/${deckId}`, data)
+  }
+
+  deleteDeck(deckId: string) {
+    return this.delete<{ success: boolean }>(`/api/decks/${deckId}`)
   }
 
   async star(deckId: string) {
