@@ -35,7 +35,7 @@ export {
 
 // Providers
 export { BaseLLMProvider } from './providers/base-provider'
-export { OpenAIProvider } from './providers/openai'
+export { GeminiProvider } from './providers/gemini'
 
 // Prompts
 export {

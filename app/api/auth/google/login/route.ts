@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { withApiHandler, ApiContextOptionalAuth } from '@/lib/middleware/api-wrapper'
 import { generateGoogleAuthUrl } from '@/lib/auth/googleOAuth'
-import { createOAuthStateCookie } from '@/lib/auth/session'
-import { getAuthConfig } from '@/lib/auth/config'
+import { createOAuthStateToken, OAUTH_STATE_COOKIE_NAME } from '@/lib/auth/session'
+import { getAuthConfig, OAUTH_STATE_COOKIE_MAX_AGE } from '@/lib/auth/config'
 
 function sanitizeReturnUrl(url?: unknown): string {
   if (typeof url !== 'string') {
@@ -32,7 +32,16 @@ export const POST = withApiHandler(async ({ request }: ApiContextOptionalAuth) =
   const { url, state, codeVerifier } = await generateGoogleAuthUrl()
   const returnUrl = sanitizeReturnUrl(body.returnUrl)
 
-  await createOAuthStateCookie({ state, codeVerifier, returnUrl })
+  const token = await createOAuthStateToken({ state, codeVerifier, returnUrl })
+  const response = NextResponse.json({ url })
 
-  return { url }
+  response.cookies.set(OAUTH_STATE_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: OAUTH_STATE_COOKIE_MAX_AGE,
+  })
+
+  return response
 }, { requireAuth: false })

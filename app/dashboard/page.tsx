@@ -114,7 +114,7 @@ export default function DashboardPage() {
         </div>
 
         {!loading && allDecks.length > 0 && (
-          <div className="flex items-center gap-4 mb-8">
+          <div className="flex flex-wrap items-center gap-4 mb-8">
             <input
               type="text"
               placeholder="Search decks..."
@@ -142,25 +142,34 @@ export default function DashboardPage() {
               <span className="text-sm text-gray-600">My favorites only</span>
             </label>
 
-            {/* Generate Deck button - only visible for specific user */}
-            {user?.id === '03fdc299-8363-4543-b7b0-e6fc61000401' && (
+            <div className="ml-auto flex gap-3">
               <button
-                onClick={handleGenerateDeck}
-                className="btn-primary ml-auto whitespace-nowrap flex items-center gap-2"
+                onClick={() => setShowCreateModal(true)}
+                className="btn-primary whitespace-nowrap"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                Generate Deck
+                Create Deck
               </button>
-            )}
+
+              {/* Generate Deck button - only visible for specific user */}
+              {user?.id === '03fdc299-8363-4543-b7b0-e6fc61000401' && (
+                <button
+                  onClick={handleGenerateDeck}
+                  className="btn-primary whitespace-nowrap flex items-center gap-2"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Generate Deck
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -178,6 +187,12 @@ export default function DashboardPage() {
                 <p className="text-gray-600">
                   Create your first deck to start learning
                 </p>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="btn-primary mt-4"
+                >
+                  Create Deck
+                </button>
               </>
             ) : (
               <>

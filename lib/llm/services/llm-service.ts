@@ -3,7 +3,7 @@
  */
 
 import { getConfig } from "@/lib/config/env";
-import { OpenAIProvider } from "../providers/openai";
+import { GeminiProvider } from "../providers/gemini";
 import { BaseLLMProvider } from "../providers/base-provider";
 import { LlmUsageRepository } from "@/lib/repositories/llm-usage-repository";
 import type {
@@ -21,7 +21,7 @@ import { LLMError, RateLimitError, QuotaExceededError } from "../types";
 
 export class LLMService {
   private providers: Map<string, BaseLLMProvider> = new Map();
-  private defaultProvider: string = "openai";
+  private defaultProvider: string = "gemini";
   private usageRepository: LlmUsageRepository;
 
   constructor() {
@@ -32,21 +32,15 @@ export class LLMService {
   private initializeProviders(): void {
     const config = getConfig();
 
-    // Initialize OpenAI provider if API key is available
-    if (config.OPENAI_API_KEY) {
-      const openaiProvider = new OpenAIProvider(config.OPENAI_API_KEY, {
-        model: "gpt-4o-mini", // Default to cost-effective model
+    // Initialize Gemini provider if API key is available
+    if (config.GEMINI_API_KEY) {
+      const geminiProvider = new GeminiProvider(config.GEMINI_API_KEY, {
+        model: config.GEMINI_MODEL || "gemini-1.5-flash",
         temperature: 0.7,
         maxTokens: 2000,
       });
-      this.providers.set("openai", openaiProvider);
+      this.providers.set("gemini", geminiProvider);
     }
-
-    // Add other providers here (Anthropic, etc.)
-    // if (config.ANTHROPIC_API_KEY) {
-    //   const anthropicProvider = new AnthropicProvider(config.ANTHROPIC_API_KEY)
-    //   this.providers.set('anthropic', anthropicProvider)
-    // }
   }
 
   /**

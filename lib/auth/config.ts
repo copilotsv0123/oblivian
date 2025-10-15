@@ -50,7 +50,7 @@ export function getAuthConfig(): AuthConfig {
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
     googleRedirectUri:
       process.env.GOOGLE_REDIRECT_URI ||
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/google/callback`,
+      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost'}/api/auth/google/callback`,
     sessionSecret: process.env.AUTH_SESSION_SECRET,
     sessionDuration,
   }

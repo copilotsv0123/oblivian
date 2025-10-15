@@ -3,16 +3,16 @@
  * Validates required environment variables at startup
  */
 
-type EmbeddingProvider = 'openai'
+type EmbeddingProvider = 'gemini'
 
 interface EnvConfig {
   JWT_SECRET: string
   DATABASE_URL: string
   NODE_ENV: 'development' | 'production' | 'test'
-  ANTHROPIC_API_KEY?: string
-  OPENAI_API_KEY?: string
+  GEMINI_API_KEY?: string
+  GEMINI_MODEL?: string
   EMBEDDING_PROVIDER?: EmbeddingProvider
-  OPENAI_EMBEDDING_MODEL?: string
+  GEMINI_EMBEDDING_MODEL?: string
 }
 
 class ConfigurationError extends Error {
@@ -36,7 +36,7 @@ export function getConfig(): EnvConfig {
   const NODE_ENV = (process.env.NODE_ENV || 'development') as EnvConfig['NODE_ENV']
 
   const rawProvider = process.env.EMBEDDING_PROVIDER?.toLowerCase()
-  const EMBEDDING_PROVIDER = rawProvider === 'openai'
+  const EMBEDDING_PROVIDER = rawProvider === 'gemini'
     ? (rawProvider as EmbeddingProvider)
     : undefined
 
@@ -58,10 +58,10 @@ export function getConfig(): EnvConfig {
         JWT_SECRET: 'development-only-secret-do-not-use-in-production',
         DATABASE_URL,
         NODE_ENV,
-        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-        OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+        GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+        GEMINI_MODEL: process.env.GEMINI_MODEL,
         EMBEDDING_PROVIDER,
-        OPENAI_EMBEDDING_MODEL: process.env.OPENAI_EMBEDDING_MODEL,
+        GEMINI_EMBEDDING_MODEL: process.env.GEMINI_EMBEDDING_MODEL,
       }
       return config
     }
@@ -73,10 +73,10 @@ export function getConfig(): EnvConfig {
     JWT_SECRET: JWT_SECRET!,
     DATABASE_URL,
     NODE_ENV,
-    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    GEMINI_MODEL: process.env.GEMINI_MODEL,
     EMBEDDING_PROVIDER,
-    OPENAI_EMBEDDING_MODEL: process.env.OPENAI_EMBEDDING_MODEL,
+    GEMINI_EMBEDDING_MODEL: process.env.GEMINI_EMBEDDING_MODEL,
   }
 
   return config

@@ -1,7 +1,7 @@
 import { getConfig } from "@/lib/config/env";
 import { deckEmbeddingRepository } from "@/lib/repositories/deck-embedding-repository";
 
-type EmbeddingProvider = "openai";
+type EmbeddingProvider = "gemini";
 
 interface EmbeddingComputation {
   vector: number[];
@@ -10,12 +10,12 @@ interface EmbeddingComputation {
 }
 
 const TARGET_VECTOR_DIMENSION = 1536;
-const DEFAULT_OPENAI_MODEL = "text-embedding-3-small";
-const OPENAI_ENDPOINT = "https://api.openai.com/v1/embeddings";
+const DEFAULT_GEMINI_MODEL = "text-embedding-004";
+const GEMINI_EMBED_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
 /**
- * Generate an embedding vector for the given text using OpenAI's embedding API.
- * Requires a valid OpenAI API key.
+ * Generate an embedding vector for the given text using Gemini embedding API.
+ * Requires a valid Gemini API key.
  */
 export async function generateEmbedding(
   text: string,
@@ -27,48 +27,45 @@ export async function generateEmbedding(
     throw new Error("Cannot generate embedding for empty text");
   }
 
-  if (!config.OPENAI_API_KEY) {
-    throw new Error("OpenAI API key is required for embedding generation");
+  if (!config.GEMINI_API_KEY) {
+    throw new Error("Gemini API key is required for embedding generation");
   }
 
-  const model = config.OPENAI_EMBEDDING_MODEL || DEFAULT_OPENAI_MODEL;
-  const vector = await createOpenAIEmbedding(
+  const model = config.GEMINI_EMBEDDING_MODEL || DEFAULT_GEMINI_MODEL;
+  const vector = await createGeminiEmbedding(
     normalizedText,
     model,
-    config.OPENAI_API_KEY,
+    config.GEMINI_API_KEY,
   );
-  return { vector, model: `openai:${model}`, provider: "openai" };
+  return { vector, model: `gemini:${model}`, provider: "gemini" };
 }
 
-async function createOpenAIEmbedding(
+async function createGeminiEmbedding(
   text: string,
   model: string,
   apiKey: string,
 ): Promise<number[]> {
-  const response = await fetch(OPENAI_ENDPOINT, {
+  const url = `${GEMINI_EMBED_ENDPOINT}/${model}:embedText?key=${apiKey}`;
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      input: text,
-      model,
-    }),
+    body: JSON.stringify({ text }),
   });
 
   if (!response.ok) {
     const errorBody = await safeReadError(response);
-    throw new Error(`OpenAI embeddings request failed: ${errorBody}`);
+    throw new Error(`Gemini embeddings request failed: ${errorBody}`);
   }
 
   const data = (await response.json()) as {
-    data?: Array<{ embedding: unknown }>;
+    embedding?: { value?: unknown };
   };
-  const embedding = data.data?.[0]?.embedding;
+  const embedding = data.embedding?.value;
 
   if (!embedding) {
-    throw new Error("OpenAI embeddings response missing embedding vector");
+    throw new Error("Gemini embeddings response missing embedding vector");
   }
 
   return ensureVectorSize(sanitizeEmbedding(embedding));

@@ -1,7 +1,7 @@
 import { AchievementTracker } from '../lib/achievements/tracker'
 
 async function checkAndUnlockAchievements() {
-  const userId = '03fdc299-8363-4543-b7b0-e6fc61000401'
+  const userId = '7b80ef0a-766a-4391-ab76-77b29f27ac19'
   const tracker = new AchievementTracker(userId)
 
   console.log('Checking achievements for user:', userId)

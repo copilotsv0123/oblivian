@@ -8,7 +8,7 @@ import { getAuthConfig, OAUTH_STATE_COOKIE_MAX_AGE } from './config'
 import type { GoogleTokens } from './googleOAuth'
 
 const SESSION_COOKIE_NAME = 'oblivian-session'
-const OAUTH_STATE_COOKIE_NAME = 'google-oauth-state'
+export const OAUTH_STATE_COOKIE_NAME = 'google-oauth-state'
 
 interface OAuthStatePayload extends Record<string, any> {
   state: string
@@ -44,15 +44,19 @@ export interface ActiveSession {
   }
 }
 
-export async function createOAuthStateCookie(payload: OAuthStatePayload) {
+export async function createOAuthStateToken(payload: OAuthStatePayload): Promise<string> {
   const config = getAuthConfig()
   const secret = new TextEncoder().encode(config.sessionSecret!)
 
-  const token = await new SignJWT(payload)
+  return new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${OAUTH_STATE_COOKIE_MAX_AGE}s`)
     .sign(secret)
+}
+
+export async function createOAuthStateCookie(payload: OAuthStatePayload) {
+  const token = await createOAuthStateToken(payload)
 
   const cookieStore = await cookies()
   cookieStore.set(OAUTH_STATE_COOKIE_NAME, token, {
