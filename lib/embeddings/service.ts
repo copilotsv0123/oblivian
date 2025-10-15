@@ -10,6 +10,7 @@ interface EmbeddingComputation {
 }
 
 const TARGET_VECTOR_DIMENSION = 1536;
+const GEMINI_VECTOR_DIMENSION = 768;
 const DEFAULT_GEMINI_MODEL = "text-embedding-004";
 const GEMINI_EMBED_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
@@ -45,13 +46,18 @@ async function createGeminiEmbedding(
   model: string,
   apiKey: string,
 ): Promise<number[]> {
-  const url = `${GEMINI_EMBED_ENDPOINT}/${model}:embedText?key=${apiKey}`;
+  const url = `${GEMINI_EMBED_ENDPOINT}/${model}:embedContent?key=${apiKey}`;
   const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({
+      model: `models/${model}`,
+      content: {
+        parts: [{ text }],
+      },
+    }),
   });
 
   if (!response.ok) {
@@ -60,9 +66,9 @@ async function createGeminiEmbedding(
   }
 
   const data = (await response.json()) as {
-    embedding?: { value?: unknown };
+    embedding?: { value?: unknown; values?: unknown };
   };
-  const embedding = data.embedding?.value;
+  const embedding = data.embedding?.values ?? data.embedding?.value;
 
   if (!embedding) {
     throw new Error("Gemini embeddings response missing embedding vector");
@@ -92,6 +98,16 @@ function sanitizeEmbedding(embedding: unknown): number[] {
 function ensureVectorSize(vector: number[]): number[] {
   if (vector.length === TARGET_VECTOR_DIMENSION) {
     return vector;
+  }
+
+  if (vector.length === GEMINI_VECTOR_DIMENSION) {
+    if (TARGET_VECTOR_DIMENSION > GEMINI_VECTOR_DIMENSION) {
+      return vector.concat(
+        new Array(TARGET_VECTOR_DIMENSION - GEMINI_VECTOR_DIMENSION).fill(0),
+      );
+    }
+
+    return vector.slice(0, TARGET_VECTOR_DIMENSION);
   }
 
   if (vector.length > TARGET_VECTOR_DIMENSION) {
