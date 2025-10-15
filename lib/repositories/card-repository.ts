@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { cards, reviews, decks, type Card, type NewCard } from '@/lib/db'
+import { cards, reviews, decks, type Card } from '@/lib/db'
 import { eq, and, desc, inArray, lte, isNull, sql } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 import { CreateCardInput, UpdateCardInput, Choice } from '@/lib/types/cards'
@@ -54,20 +54,24 @@ export class CardRepository extends BaseRepository {
 
   async create(input: CreateCardInput): Promise<CreateResult<any>> {
     try {
-      this.validateRequiredFields(input, ['deckId', 'type', 'front'])
-      this.validateCard(input)
-      
-      const [newCard] = await db.insert(cards).values({
-        deckId: input.deckId,
-        type: 'basic', // Force basic type for now
-        front: input.front,
-        back: input.back || null,
-        choices: null, // Ignore choices for now
-        explanation: null, // Ignore explanation for now
-        advancedNotes: input.advancedNotes || null,
-        mnemonics: input.mnemonics || null,
-      }).returning()
-      
+      const normalized = this.normalizeCardInput(input)
+
+      const [newCard] = await db
+        .insert(cards)
+        .values({
+          deckId: normalized.deckId,
+          type: normalized.type,
+          front: normalized.front,
+          back: normalized.back,
+          choices: normalized.choices.length
+            ? JSON.stringify(normalized.choices)
+            : null,
+          explanation: normalized.explanation,
+          advancedNotes: normalized.advancedNotes,
+          mnemonics: normalized.mnemonics,
+        })
+        .returning()
+
       const transformedCard = transformDbCardToApiCard(newCard)
       return {
         success: true,
@@ -84,22 +88,24 @@ export class CardRepository extends BaseRepository {
     const createdCards = await db.transaction(async (tx) => {
       const batchCreated = []
       for (const input of cardInputs) {
-        const cardId = randomUUID()
-        const fullInput = { ...input, deckId }
+        const normalized = this.normalizeCardInput({ ...input, deckId })
 
-        this.validateCard(fullInput)
-
-        const [newCard] = await tx.insert(cards).values({
-          id: cardId,
-          deckId,
-          type: 'basic', // Force basic type for now
-          front: fullInput.front,
-          back: fullInput.back || null,
-          choices: null, // Ignore choices for now
-          explanation: null, // Ignore explanation for now
-          advancedNotes: fullInput.advancedNotes || null,
-          mnemonics: fullInput.mnemonics || null,
-        }).returning()
+        const [newCard] = await tx
+          .insert(cards)
+          .values({
+            id: randomUUID(),
+            deckId: normalized.deckId,
+            type: normalized.type,
+            front: normalized.front,
+            back: normalized.back,
+            choices: normalized.choices.length
+              ? JSON.stringify(normalized.choices)
+              : null,
+            explanation: normalized.explanation,
+            advancedNotes: normalized.advancedNotes,
+            mnemonics: normalized.mnemonics,
+          })
+          .returning()
 
         batchCreated.push(newCard)
       }
@@ -145,13 +151,13 @@ export class CardRepository extends BaseRepository {
         throw new Error(`bad request: Cannot create ${cardInputs.length} cards. Deck currently has ${currentCardCount} cards. Maximum is ${MAX_CARDS_PER_DECK} cards per deck. You can add up to ${remainingSlots} more cards.`)
       }
 
-      // Validate all cards first
+      // Validate and normalize all cards first
       const validationErrors: Record<number, string> = {}
-      
+      const normalizedCards: ReturnType<typeof this.normalizeCardInput>[] = []
+
       cardInputs.forEach((card, index) => {
         try {
-          const fullInput = { ...card, deckId }
-          this.validateCard(fullInput)
+          normalizedCards[index] = this.normalizeCardInput({ ...card, deckId })
         } catch (error) {
           validationErrors[index] = error instanceof Error ? error.message : 'Validation error'
         }
@@ -162,24 +168,27 @@ export class CardRepository extends BaseRepository {
       }
 
       let createdCards: Card[] = []
-      
+
       // Use a transaction for batch insert
       createdCards = await db.transaction(async (tx) => {
         const batchCreated = []
-        for (const input of cardInputs) {
-          const cardId = randomUUID()
-          const fullInput = { ...input, deckId }
-
-          const [newCard] = await tx.insert(cards).values({
-            id: cardId,
-            deckId,
-            type: fullInput.type,
-            front: fullInput.front,
-            back: fullInput.back || null,
-            choices: fullInput.choices ? JSON.stringify(fullInput.choices) : null,
-            explanation: fullInput.explanation || null,
-            advancedNotes: fullInput.advancedNotes || null,
-          }).returning()
+        for (const normalized of normalizedCards) {
+          const [newCard] = await tx
+            .insert(cards)
+            .values({
+              id: randomUUID(),
+              deckId: normalized.deckId,
+              type: normalized.type,
+              front: normalized.front,
+              back: normalized.back,
+              choices: normalized.choices.length
+                ? JSON.stringify(normalized.choices)
+                : null,
+              explanation: normalized.explanation,
+              advancedNotes: normalized.advancedNotes,
+              mnemonics: normalized.mnemonics,
+            })
+            .returning()
 
           batchCreated.push(newCard)
         }
@@ -201,15 +210,19 @@ export class CardRepository extends BaseRepository {
   async update(cardId: string, input: UpdateCardInput) {
     const updateData: Partial<typeof cards.$inferInsert> = {}
 
-    // Force basic type for now
-    updateData.type = 'basic'
+    if (input.type !== undefined) updateData.type = input.type
     if (input.front !== undefined) updateData.front = input.front
-    if (input.back !== undefined) updateData.back = input.back
-    // Ignore choices and explanation for now
-    // if (input.choices !== undefined) updateData.choices = JSON.stringify(input.choices)
-    // if (input.explanation !== undefined) updateData.explanation = input.explanation
-    if (input.advancedNotes !== undefined) updateData.advancedNotes = input.advancedNotes
-    if (input.mnemonics !== undefined) updateData.mnemonics = input.mnemonics
+    if (input.back !== undefined) updateData.back = input.back ?? null
+    if (input.choices !== undefined) {
+      updateData.choices = Array.isArray(input.choices)
+        ? JSON.stringify(input.choices)
+        : input.choices === null
+          ? null
+          : String(input.choices)
+    }
+    if (input.explanation !== undefined) updateData.explanation = input.explanation ?? null
+    if (input.advancedNotes !== undefined) updateData.advancedNotes = input.advancedNotes ?? null
+    if (input.mnemonics !== undefined) updateData.mnemonics = input.mnemonics ?? null
     
     if (Object.keys(updateData).length === 0) {
       return null
@@ -381,18 +394,31 @@ export class CardRepository extends BaseRepository {
         throw new Error('not found: Card not found')
       }
 
-      // Update the card
+      const payload: Partial<typeof cards.$inferInsert> = {}
+
+      if (updateData.type !== undefined) payload.type = updateData.type
+      if (updateData.front !== undefined) payload.front = updateData.front
+      if (updateData.back !== undefined) payload.back = updateData.back ?? null
+      if (updateData.choices !== undefined) {
+        payload.choices = Array.isArray(updateData.choices)
+          ? JSON.stringify(updateData.choices)
+          : updateData.choices === null
+            ? null
+            : String(updateData.choices)
+      }
+      if (updateData.explanation !== undefined) payload.explanation = updateData.explanation ?? null
+      if (updateData.advancedNotes !== undefined) payload.advancedNotes = updateData.advancedNotes ?? null
+      if (updateData.mnemonics !== undefined) payload.mnemonics = updateData.mnemonics ?? null
+
+      if (Object.keys(payload).length === 0) {
+        return transformDbCardToApiCard(existingCard.card)
+      }
+
+      payload.updatedAt = new Date()
+
       const [updatedCard] = await db
         .update(cards)
-        .set({
-          front: updateData.front,
-          back: updateData.back,
-          choices: updateData.choices ? JSON.stringify(updateData.choices) : undefined,
-          explanation: updateData.explanation,
-          advancedNotes: updateData.advancedNotes,
-          mnemonics: updateData.mnemonics,
-          updatedAt: new Date(),
-        })
+        .set(payload)
         .where(eq(cards.id, cardId))
         .returning()
 
@@ -596,18 +622,87 @@ export class CardRepository extends BaseRepository {
     }
   }
 
-  private validateCard(input: CreateCardInput) {
-    // For now, only accept basic cards
-    if (input.type !== 'basic') {
-      throw new Error('Only basic card type is currently supported')
+  private normalizeCardInput(input: CreateCardInput): {
+    deckId: string
+    type: CreateCardInput['type']
+    front: string
+    back: string | null
+    choices: Choice[]
+    explanation: string | null
+    advancedNotes: string | null
+    mnemonics: string | null
+  } {
+    this.validateRequiredFields(input, ['deckId', 'type', 'front'])
+
+    const deckId = input.deckId
+    const type = input.type
+    const front = (input.front || '').trim()
+
+    if (!front) {
+      throw new Error('bad request: Front text is required')
     }
 
-    if (!input.back) {
-      throw new Error('Basic cards require a back field')
+    const advancedNotes = input.advancedNotes?.trim() || null
+    const mnemonics = input.mnemonics?.trim() || null
+    let back = input.back?.trim() || null
+    let explanation = input.explanation?.trim() || null
+    let choices: Choice[] = []
+
+    switch (type) {
+      case 'basic':
+      case 'cloze': {
+        if (!back) {
+          throw new Error('bad request: Back text is required for this card type')
+        }
+        explanation = null
+        break
+      }
+      case 'multiple_choice': {
+        if (!Array.isArray(input.choices)) {
+          throw new Error('bad request: Multiple choice cards require a choices array')
+        }
+
+        choices = input.choices
+          .map((choice) => ({
+            text: (choice.text || '').trim(),
+            isCorrect: Boolean(choice.isCorrect),
+          }))
+          .filter((choice) => choice.text.length > 0)
+
+        if (choices.length < 2) {
+          throw new Error('bad request: Multiple choice cards need at least two choices')
+        }
+
+        const correctChoices = choices.filter((choice) => choice.isCorrect)
+
+        if (correctChoices.length !== 1) {
+          throw new Error('bad request: Multiple choice cards must have exactly one correct choice')
+        }
+
+        const correctChoice = correctChoices[0]
+        back = back && back.length > 0 ? back : correctChoice.text
+        break
+      }
+      case 'explain': {
+        if (!explanation) {
+          throw new Error('bad request: Explain cards require an explanation field')
+        }
+        back = null
+        break
+      }
+      default:
+        throw new Error(`bad request: Unsupported card type "${type}"`)
     }
 
-    if (!input.advancedNotes) {
-      throw new Error('Basic cards require advancedNotes field')
+    return {
+      deckId,
+      type,
+      front,
+      back,
+      choices,
+      explanation,
+      advancedNotes,
+      mnemonics,
     }
   }
 }

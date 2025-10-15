@@ -32,7 +32,7 @@ export interface ClozeCard extends BaseCard {
 
 export interface MultipleChoiceCard extends BaseCard {
   type: 'multiple_choice'
-  back?: never
+  back?: string
   choices: Choice[]
   explanation?: string
 }

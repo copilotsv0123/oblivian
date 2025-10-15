@@ -1,6 +1,7 @@
 export * from './session-repository'
 export * from './review-repository'
 export * from './study-repository'
+export * from './quiz-repository'
 export * from './deck-repository'
 export * from './auth-repository'
 export * from './card-repository'

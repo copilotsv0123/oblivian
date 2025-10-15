@@ -220,6 +220,10 @@ export default function DeckPage({
     router.push(`/study/${resolvedParams.id}?limit=10`);
   };
 
+  const startQuizSession = () => {
+    router.push(`/quiz/${resolvedParams.id}?limit=10`);
+  };
+
   if (loading) {
     return (
       <AppLayout>
@@ -360,13 +364,20 @@ export default function DeckPage({
           </div>
         </div>
 
-        <div className="flex justify-center mb-8">
+        <div className="flex flex-wrap justify-center gap-4 mb-8">
           <button
             onClick={startStudySession}
             className="btn-primary text-lg px-8 py-3"
             disabled={cards.length === 0}
           >
             Start Study Session
+          </button>
+          <button
+            onClick={startQuizSession}
+            className="btn-secondary text-lg px-8 py-3"
+            disabled={cards.length === 0}
+          >
+            Start Quiz Mode
           </button>
         </div>
 
